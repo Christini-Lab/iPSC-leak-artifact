@@ -19,11 +19,11 @@ def plot_figure():
     grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.2)
 
     #panel 1
-    plot_gleak_effect_proto(fig, grid[0, 0])
+    #plot_gleak_effect_proto(fig, grid[0, 0])
 
 
     #panel 2
-    plot_rm_vs_rpred(fig, grid[0, 1])
+    #plot_rm_vs_rpred(fig, grid[0, 1])
 
 
     #panel 3 
@@ -35,7 +35,7 @@ def plot_figure():
 
 
 
-    plt.savefig('./figure-pdfs/f4-leak_changes.pdf')
+    #plt.savefig('./figure-pdfs/f4-leak_changes.pdf')
     plt.show()
 
 
@@ -147,7 +147,8 @@ def plot_rm_change_time(fig, grid_box):
 
     all_cells = listdir('./data/cells')
 
-    delta_rm = []
+    rm_vals = []
+    pct_change = []
 
     for i, cell in enumerate(all_cells):
         if 'DS_Store' in cell:
@@ -159,7 +160,7 @@ def plot_rm_change_time(fig, grid_box):
         if np.mod(i, 2) == 0:
             continue
 
-        if ((rm_spont > 1500) or (rm_vc > 1500)):
+        if ((rm_spont > 2500) or (rm_vc > 2500)):
             continue
 
         st = cell_params['param_time'].values[0].minute
@@ -174,8 +175,14 @@ def plot_rm_change_time(fig, grid_box):
 
         ax.plot([0, minute_diff], [rm_spont, rm_vc], color='k', marker='o', alpha=.4)
 
+        rm_vals.append([rm_spont, rm_vc])
+
+        pct_change.append((rm_vc - rm_spont)/rm_spont)
+
+    #pct_change = [np.abs(p) for p in pct_change if np.abs(p) < .4]
+
     ax.set_xlabel('Time (min)')
-    ax.set_ylabel(r'$\Delta R_m (M \Omega)$')
+    ax.set_ylabel(r'$R_m (M \Omega)$')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)

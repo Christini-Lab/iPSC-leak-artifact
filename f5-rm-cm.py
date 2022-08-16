@@ -80,6 +80,8 @@ def plot_apd_vs_mdp(ax):
             mdps.append(ap_dat['Voltage (V)'].min()*1000)
             apd90s.append(apd90)
 
+    print(len(apd90s))
+
     ax.scatter(apd90s, mdps, color='k')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -88,37 +90,13 @@ def plot_apd_vs_mdp(ax):
     ax.set_ylabel('MDP') 
 
 
-def plot_cm_vs_mdp(ax):
-    all_cells = listdir('./data/cells')
-
-    mdps= []
-    cms= []
-
-    for cell in all_cells:
-        if 'DS_Store' in cell:
-            continue
-        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
-        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
-
-        mdps.append(ap_dat['Voltage (V)'].min()*1000)
-        cms.append(cell_params['Cm'].values[0])
-
-
-
-    #ax.scatter(cms_flat, mdps_flat, c='k', label='Flat')
-    #ax.scatter(cms, mdps, c='grey', marker='^', label='Spont')
-    regplot(cms, mdps, color='k', ax=ax)
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-
-    ax.set_xlabel(r'$C_m$') 
-    ax.set_ylabel('MDP') 
-
-
 def plot_cm_flat_vs_spont(ax):
     all_cells = listdir('./data/cells')
 
     cms = []
+
+    cm_flat = []
+    cm_spont = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
@@ -131,8 +109,10 @@ def plot_cm_flat_vs_spont(ax):
             and
             (ap_dat['Voltage (V)'].max() > 0)):
             cc_behavior = 'Spont'
+            cm_spont.append(cell_params['Cm'].values[0])
         else:
             cc_behavior = 'Flat'
+            cm_flat.append(cell_params['Cm'].values[0])
 
         cms.append([cc_behavior, cell_params['Cm'].values[0]])
 
@@ -147,6 +127,43 @@ def plot_cm_flat_vs_spont(ax):
     ax.set_xlabel('') 
     ax.set_ylabel('Cm') 
     ax.set_ylim(0, 105)
+
+
+def plot_cm_vs_mdp(ax):
+    all_cells = listdir('./data/cells')
+
+    mdps_spont = []
+    cms_spont = []
+    mdps_flat = []
+    cms_flat = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        if (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > 0)):
+            mdps_spont.append(ap_dat['Voltage (V)'].min()*1000)
+            cms_spont.append(cell_params['Cm'].values[0])
+        else:
+            mdps_flat.append(ap_dat['Voltage (V)'].min()*1000)
+            cms_flat.append(cell_params['Cm'].values[0])
+
+    cms = cms_spont + cms_flat
+    mdps = mdps_spont + mdps_flat 
+    regplot(cms, mdps, color='k', ax=ax)
+    ax.scatter(cms_spont, mdps_spont, c='k', label='Spont')
+    ax.scatter(cms_flat, mdps_flat, c='deeppink', marker='s', label='Flat', s=40)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(r'$C_m$') 
+    ax.set_ylabel('MDP') 
+    ax.legend()
 
 
 #Utility function
