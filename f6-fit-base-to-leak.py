@@ -13,6 +13,15 @@ import myokit
 
 random.seed(1)
 
+plt.rcParams['lines.linewidth'] = .9
+plt.rcParams['lines.markersize'] = 4
+plt.rcParams['xtick.labelsize'] = 8
+plt.rcParams['ytick.labelsize'] = 8
+plt.rcParams['axes.labelsize'] = 10 
+plt.rcParams['axes.labelsize'] = 10 
+plt.rc('legend', fontsize = 8)
+
+
 #from supercell_ga import Ga_Config, plot_generation
 def start_ga(pop_size=20, max_generations=10):
     # 1. Initializing GA hyperparameters
@@ -348,8 +357,8 @@ def plot_generation(inds,
 
         fitnesses.append(ind.fitness.values[0])
 
-    fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-    fig.subplots_adjust(.07, .10, .95, .98)
+    fig, axs = plt.subplots(1, 2, figsize=(6.5, 2.75))
+    fig.subplots_adjust(.11, .15, .96, .98)
 
 
     for ax in axs:
@@ -372,17 +381,17 @@ def plot_generation(inds,
 
 
     best_vals = [log10(v) for v in best_ind[0].values()]
-    axs[0].scatter([0, 1, 2], best_vals, c='tomato', marker='s', s=45)
+    axs[0].scatter([0, 1, 2], best_vals, c='tomato', marker='s', s=20)
 
 
     curr_x = 0
 
     axs[0].hlines(0, -.5, (len(keys)-.5), colors='grey', linestyle='--')
     axs[0].set_xticks([i for i in range(0, len(keys))])
-    axs[0].set_xticklabels(['GbNa', 'GbCa', 'GNaK'], fontsize=10)
+    axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
     axs[0].set_ylim(log10(lower_bound),
                     log10(upper_bound))
-    axs[0].set_ylabel('Log10 Conductance', fontsize=14)
+    axs[0].set_ylabel(r'$Log_{10}$ $G_{scale}$')
 
     t, v = get_target_ap()
     axs[1].plot(t, v, 'k', label='Target w Leak')
@@ -395,23 +404,22 @@ def plot_generation(inds,
     print(best_ind[0])
 
     t, v = get_kernik_ap()
-    axs[1].plot(t, v, c='grey', linestyle='--', alpha=.5,
+    axs[1].plot(t, v, c='grey', linestyle='dotted', alpha=.5,
                                             label='Baseline Kernik')
 
     #t, v, cai, i_ion = get_normal_sim_dat(None)
 
-    axs[1].set_ylabel('Voltage (mV)', fontsize=14)
-    axs[1].set_xlabel('Time (ms)', fontsize=14)
+    axs[1].set_ylabel('Voltage (mV)')
+    axs[1].set_xlabel('Time (ms)')
 
-    axs[1].legend()
-
-    #fig.suptitle(f'Generation {gen+1}', fontsize=14)
+    axs[1].legend(loc=1)
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f6-fit-bg-currs.pdf', transparent=True)
+    plt.savefig('./figure-pdfs/f-fit-bg-currs.pdf', transparent=True)
 
 
     plt.show()
+
 
 
 

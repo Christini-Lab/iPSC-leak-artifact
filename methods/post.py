@@ -4,6 +4,7 @@
 import numpy as np
 import pywt
 import scipy.interpolate
+from scipy.signal import find_peaks
 
 
 # Scaling for "angles" on APs
@@ -321,24 +322,25 @@ def biomarkers(t, v, denoise=13):
     # v_max = 0.5 * (v1[imax] + v1[imax + 1])
     dvdt_max = ddv1[imax]
 
+    import matplotlib.pyplot as plt
     # Find APD90s
-    amplitudes = v1[peaks[1:-1]] - v1[mdps[1:]]
-    start_idxs = peaks[1:-1]
-    end_idxs = mdps[1:]
-    v_apd90 = v1[end_idxs] + amplitudes * .1
+    peak_idxs = find_peaks(np.diff(v), height=.1, distance=100)[0]
+    min_v_idxs = find_peaks(-v[peak_idxs[0]:], height=30, distance=100)[0]+peak_idxs[0]
     apd90 = []
-    
+    for i, dvdt_idx in enumerate(peak_idxs[:-1]):
+        v_range = v[dvdt_idx: min_v_idxs[i]]
+        t_range = t[dvdt_idx: min_v_idxs[i]]
+        amp = np.max(v_range) - np.min(v_range) 
+        apd90_v = np.max(v_range) - amp*.9
+        pk_idx = np.argmax(v_range)
+        
+        apd90_idx = np.argmin(np.abs(v_range[pk_idx:] - apd90_v)) + pk_idx
+        apd90.append(t_range[apd90_idx] - t_range[0])
 
-    for (st_idx, end_idx, v_apd90) in zip(start_idxs, end_idxs,v_apd90 ):
-        apd90idx = np.argmin(np.abs(v1[st_idx:end_idx] - v_apd90)) + st_idx
-
-        apd90.append(t1[apd90idx] - t1[st_idx])
-    apd90.append(np.mean(apd90))
     apd90 = np.array(apd90)
-    
-    amplitudes = np.append(amplitudes, np.mean(amplitudes))
+    amplitudes = np.array([0, 0, 0])
 
-    return np.array([
+    return [
         dt_peak,
         dt_ap1,
         dt_ap2,
@@ -356,5 +358,5 @@ def biomarkers(t, v, denoise=13):
         dvdt_max,
         apd90,
         amplitudes
-    ])
+    ]
 

@@ -149,9 +149,9 @@ def get_single_ap(t, v):
         new_t = t[0:sample_end] -100
         new_t = [-100, 1000]
         new_v = [v[0], v[0]]
-        return new_t, new_v
+        return new_t[0:2000], new_v[0:2000]
 
-    dvdt_peaks = find_peaks(np.diff(v)/np.diff(t), distance=200, width=10, prominence=.3)[0]
+    dvdt_peaks = find_peaks(np.diff(v), distance=400, height=.2)[0]
     if dvdt_peaks.size == 0:
         sample_end = np.argmin(np.abs(t - 1100))
         new_t = t[0:sample_end] -100
@@ -162,10 +162,9 @@ def get_single_ap(t, v):
     start_idx = dvdt_peaks[int(len(dvdt_peaks) / 2)]
         
     ap_start = np.argmin(np.abs(t - t[start_idx]+100))
-    ap_end = np.argmin(np.abs(t - t[start_idx]-1000))
+    ap_end = np.argmin(np.abs(t - t[start_idx]-2000))
 
     new_t = t[ap_start:ap_end] - t[start_idx]
     new_v = v[ap_start:ap_end]
 
     return new_t, new_v 
-

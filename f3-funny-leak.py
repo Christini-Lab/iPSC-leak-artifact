@@ -8,11 +8,20 @@ import matplotlib
 from utility_classes import VCSegment, VCProtocol
 
 
-def plot_figure():
-    fig = plt.figure(figsize=(12, 8))
-    fig.subplots_adjust(.07, .10, .95, .98)
+plt.rcParams['lines.linewidth'] = .9
+plt.rcParams['lines.markersize'] = 4
+plt.rcParams['xtick.labelsize'] = 8
+plt.rcParams['ytick.labelsize'] = 8
+plt.rcParams['axes.labelsize'] = 10 
+plt.rcParams['axes.labelsize'] = 10 
+plt.rc('legend', fontsize = 8)
 
-    grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.2)
+
+def plot_figure():
+    fig = plt.figure(figsize=(6.5, 5))
+    fig.subplots_adjust(.12, .1, .99, .99)
+
+    grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.3)
 
     #panel 1
     plot_whole_vc(fig, grid[0, 0])
@@ -27,7 +36,7 @@ def plot_figure():
     plot_vhold_vs_rmpred(fig, grid[1, 1])
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f3-funny-leak.pdf', transparent=True)
+    plt.savefig('./figure-pdfs/f-funny-leak.pdf', transparent=True)
 
     plt.show()
 
@@ -73,60 +82,83 @@ def plot_exp_kernik_vc(fig, grid_box):
     subgrid = grid_box.subgridspec(2, 1, wspace=.9, hspace=.1)
     ax_exp = fig.add_subplot(subgrid[0]) 
     plot_if_vc(ax_exp)
+    ax_exp.legend()
     ax_mod = fig.add_subplot(subgrid[1]) 
     plot_kernik_vc(ax_mod)
 
 
 def plot_gleak_effect_proto(fig, grid_box):
-    subgrid = grid_box.subgridspec(3, 1, wspace=.2, hspace=.1)
+    subgrid = grid_box.subgridspec(3, 1, wspace=.2, hspace=.05)
 
-    ax_v1 = fig.add_subplot(subgrid[0, 0]) 
-    ax_c1 = fig.add_subplot(subgrid[1, 0]) 
-    ax_lk1 = fig.add_subplot(subgrid[2, 0]) 
+    #ax_v1 = fig.add_subplot(subgrid[0, 0]) 
+    ax_out = fig.add_subplot(subgrid[0, 0]) 
+    ax_ion = fig.add_subplot(subgrid[1, 0]) 
+    ax_lk = fig.add_subplot(subgrid[2, 0]) 
 
-    axs = [ax_v1, ax_c1, ax_lk1]
+    #axs = [ax_v1, ax_out, ax_ion, ax_lk]
+    axs = [ax_out, ax_ion, ax_lk]
 
     leak = 1 
     cols = ['k', 'grey']
     styles = ['-', '--']
 
-    vhold = -80
-    segments = [VCSegment(50000, vhold)]
-    for i in range(0, 125):
-        segments.append(VCSegment(100, vhold))
-        segments.append(VCSegment(100, vhold+1))
+    v_base = -80
+    v_step = 5
 
-    py_proto = VCProtocol(segments)
+    mk_proto = myokit.Protocol()
+    mk_proto.add_step(v_base, 100000)
+
+    for i in range(0, 100):
+        mk_proto.add_step(v_base, 50)
+        mk_proto.add_step(v_base+5, 50)
+
+    gf_vals = {1: '0.0435 nS/pF',
+               2: '0.087 nS/pF'}
+
+    i_ion_vals = []
+    i_out_vals = []
 
     for j, g_f in enumerate([1, 2]):
         t, dat = get_mod_response('./mmt/kernik_leak.mmt',
                                   {'membrane.gLeak': leak,
                                    'ifunny.g_f': g_f},
-                                  vc_proto=py_proto)
-        t = t - t[-2500]
+                                  vc_proto=mk_proto)
+        st = 1750 
+        en = 750 
+        t = t - t[-st]
 
-        axs[0].plot(t[-2500:-500], dat['membrane.V'][-2500:-500],
-                                                    c=cols[j], linestyle=styles[j], label=f'$G_f$={g_f}')
+        axs[0].plot(t[-st:-en], dat['membrane.i_ion'][-st:-en],
+                                                    c=cols[j], linestyle=styles[j])
+        i_ion = np.array(dat['membrane.i_ion']) - np.array(dat['membrane.ILeak'])
+        axs[1].plot(t[-st:-en], i_ion[-st:-en], c=cols[j], linestyle=styles[j])
+        axs[2].plot(t[-st:-en], dat['membrane.ILeak'][-st:-en], c=cols[j], linestyle=styles[j], label=f'$g_f$={gf_vals[g_f]}')
 
-        axs[1].plot(t[-2500:-500], dat['membrane.i_ion'][-2500:-500],
-                                                    c=cols[j], linestyle=styles[j], label=f'G_f={g_f}')
-        ion_leak = np.array(dat['membrane.i_ion']) - np.array(dat['membrane.ILeak'])
-        axs[2].plot(t[-2500:-500], ion_leak[-2500:-500], c=cols[j], linestyle=styles[j])
+        i_out_vals.append(dat['membrane.i_ion'][int(-((st+en)/2))])
+        i_ion_vals.append(i_ion[int(-((st+en)/2))])
 
     for ax in axs:
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
 
-    for ax in [ax_v1, ax_c1]:
+    for ax in [ax_out, ax_ion]:
         ax.set_xticklabels([])
 
-    ax_v1.set_ylabel(r'$V_{cmd}$')
-    ax_c1.set_ylabel(r'$I_{out}$ (A/F)')
-    ax_lk1.set_ylabel(r'$I_{out}$ - $I_{leak}$ (A/F)')
+    ax_out.set_ylabel(r'$I_{out}$ (A/F)')
+    ax_ion.set_ylabel(r'$I_{ion}$ (A/F)')
+    ax_lk.set_ylabel(r'$I_{leak}$ (A/F)')
 
-    ax_lk1.set_xlabel('Time (ms)')
+    ax_lk.set_xlabel('Time (ms)')
 
-    ax_v1.legend()
+    line_x = 78
+    ax_out.annotate(s='', xy=(line_x,i_out_vals[0]), xytext=(line_x,i_out_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.1", color='r', lw=.3))
+    ax_out.hlines(y=i_out_vals[0], xmin=50, xmax=line_x, color='r', linestyle='dotted')
+    ax_out.hlines(y=i_out_vals[1], xmin=50, xmax=line_x, color='r', linestyle='dotted')
+
+    #ax_ion.annotate(s='', xy=(line_x,i_ion_vals[0]), xytext=(line_x,i_ion_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.2", color='r', lw=1))
+    #ax_ion.hlines(y=i_ion_vals[0], xmin=50, xmax=line_x, color='r', linestyle='dotted')
+    #ax_ion.hlines(y=i_ion_vals[1], xmin=50, xmax=line_x, color='r', linestyle='dotted')
+
+    ax_lk.legend()
 
 
 def plot_vhold_vs_rmpred(fig, grid_box):
@@ -135,7 +167,7 @@ def plot_vhold_vs_rmpred(fig, grid_box):
 
     ax = fig.add_subplot(subgrid[0]) 
 
-    delta_v = 1
+    delta_v = 5
     num_voltages = 13#27
     voltages = np.linspace(-90, 30, num_voltages) + .1
 
@@ -146,45 +178,52 @@ def plot_vhold_vs_rmpred(fig, grid_box):
 
     cols = ['k', 'grey', 'lightgrey']
     g_k1 = .1
+    #g_k1 = 1
+
+    gf_vals = {1: '0.0435 nS/pF',
+               2: '0.087 nS/pF'}
+
     for it, g_f in enumerate([1, 2]):
         rm_pred = []
         for v_base in voltages:
-            segments = [VCSegment(50000, v_base)]
-
-            for i in range(0, 125):
-                segments.append(VCSegment(100, v_base))
-                segments.append(VCSegment(100, v_base + delta_v))
-
-            py_proto = VCProtocol(segments)
+            mk_proto = myokit.Protocol()
+            mk_proto.add_step(v_base, 100000)
+            for i in range(0, 100):
+                mk_proto.add_step(v_base, 50)
+                mk_proto.add_step(v_base+5, 50)
 
             t, dat = get_mod_response('./mmt/kernik_leak.mmt',
                                       {'membrane.gLeak': g_leak,
                                        'ifunny.g_f': g_f,
                                        'ik1.g_K1': g_k1},
-                                      vc_proto=py_proto)
+                                      vc_proto=mk_proto)
 
             i_ion = dat['membrane.i_ion']
-            rm = delta_v / (i_ion[-500] - i_ion[-1500]) / Cm
+            rm = delta_v / (i_ion[-250] - i_ion[-750]) / Cm
             rm_pred.append(rm)
 
             print(f'At {v_base}, Rmpred is {rm}')
 
 
-        ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$G_f$={g_f}')
+
+        if it == 0:
+            #ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$g_f$={gf_vals[g_f]}')
+            ax.plot(voltages, rm_pred, cols[it], marker='o')
+        else:
+            #ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$g_f$={gf_vals[g_f]}', linestyle='--')
+            ax.plot(voltages, rm_pred, cols[it], marker='o', linestyle='--')
+
     #ax.plot(t, i_ion, label=f'G_f={cond}')
     #ax.plot(t, dat['ifunny.i_f'], label=f'G_f={cond}')
 
-    ax.axhline(y=1, color='grey', linestyle='--')
+    ax.axhline(y=1, color='r', linestyle='dotted', alpha=.3)
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
-    ax.set_xlabel(r'$V_{hold}$')
-    ax.set_ylabel(r'Rm')
+    ax.set_xlabel(r'$V_{hold}$ (mV)')
+    ax.set_ylabel(r'$R_m$ ($G\Omega$)')
     ax.set_ylim(-1, 2)
-    ax.legend()
-
-
-
+    #ax.legend()
 
 
 
@@ -231,7 +270,7 @@ def return_vc_proto(scale=1):
 
 def get_mod_response(f_name='./mmt/kernik_2019_mc.mmt',
                      conductances={},
-                     vc_proto=None):
+                     vc_proto=None, tols=1E-8):
     mod = myokit.load_model(f_name)
 
     for cond, g in conductances.items():
@@ -245,38 +284,58 @@ def get_mod_response(f_name='./mmt/kernik_2019_mc.mmt',
     if vc_proto is None:
         vc_proto = return_vc_proto()
 
-    proto = myokit.Protocol()
-    proto.add_step(-80, 10000)
+    if 'myokit' not in vc_proto.__module__:
+        proto = myokit.Protocol()
 
-    piecewise, segment_dict, t_max = vc_proto.get_myokit_protocol()
+        proto.add_step(-80, 10000)
 
-    v = mod.get('membrane.V')
-    v.demote()
-    v.set_rhs(0)
+        piecewise, segment_dict, t_max = vc_proto.get_myokit_protocol()
 
-    new_seg_dict = {}
-    for k, vol in segment_dict.items():
-        new_seg_dict[k] = vol
+        v = mod.get('membrane.V')
+        v.demote()
+        v.set_rhs(0)
 
-    segment_dict = new_seg_dict
+        new_seg_dict = {}
+        for k, vol in segment_dict.items():
+            new_seg_dict[k] = vol
 
-    mem = mod.get('membrane')
-    vp = mem.add_variable('vp')
-    vp.set_rhs(0)
-    vp.set_binding('pace')
+        segment_dict = new_seg_dict
 
-    for v_name, st in segment_dict.items():
-        v_new = mem.add_variable(v_name)
-        v_new.set_rhs(st)
+        mem = mod.get('membrane')
+        vp = mem.add_variable('vp')
+        vp.set_rhs(0)
+        vp.set_binding('pace')
 
-    v.set_rhs(piecewise)
+        for v_name, st in segment_dict.items():
+            v_new = mem.add_variable(v_name)
+            v_new.set_rhs(st)
 
-    t = proto.characteristic_time()
-    sim = myokit.Simulation(mod, proto)
+        v.set_rhs(piecewise)
 
-    times = np.arange(0, t_max, 0.1)
+        sim = myokit.Simulation(mod, proto)
 
-    dat = sim.run(t_max, log_times=times)
+        times = np.arange(0, t_max, 0.1)
+
+        dat = sim.run(t_max, log_times=times)
+
+    else:
+        p = mod.get('engine.pace')
+        p.set_binding(None)
+
+        v = mod.get('membrane.V')
+        v.demote()
+        v.set_rhs(0)
+        v.set_binding('pace')
+
+        t_max = vc_proto.characteristic_time()
+
+        sim = myokit.Simulation(mod, vc_proto)
+
+        times = np.arange(0, t_max, 0.1)
+
+        sim.set_tolerance(1E-6, tols)
+
+        dat = sim.run(t_max, log_times=times)
 
     return times, dat
 
@@ -315,8 +374,6 @@ def plot_if_vc(ax):
 
     ax.set_xticklabels([])
 
-    ax.legend()
-
 
 def plot_kernik_vc(ax):
     cols = ['k--', 'r--']
@@ -340,7 +397,6 @@ def plot_kernik_vc(ax):
 
     ax.set_ylabel(r'KC $I_m (A/F)$')
 
-    ax.legend()
     ax.set_xlabel('Time (ms)')
 
 

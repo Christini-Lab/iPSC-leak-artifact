@@ -2,30 +2,79 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from os import listdir
 from scipy.signal import find_peaks
+from scipy import stats
 
 from seaborn import histplot, regplot, pointplot, swarmplot
 import numpy as np
 
 
+plt.rcParams['lines.linewidth'] = .9
+plt.rcParams['lines.markersize'] = 4
+plt.rcParams['xtick.labelsize'] = 8
+plt.rcParams['ytick.labelsize'] = 8
+plt.rcParams['axes.labelsize'] = 10
+plt.rc('legend', fontsize = 8)
+
+
 def plot_figure():
-    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
-    fig.subplots_adjust(.07, .10, .95, .98)
+    fig = plt.figure(figsize=(6.5, 7.5))
 
-    plot_flat_spont(axs[0][0])
+    fig.subplots_adjust(.1, .08, .96, .96)
 
-    plot_apd_vs_mdp(axs[0][1])
+    grid = fig.add_gridspec(3, 1, hspace=.25)
 
-    plot_cm_vs_mdp(axs[1][1])
+    axs = []
 
-    plot_cm_flat_vs_spont(axs[1][0])
+    #Panel A
+    subgrid = grid[0].subgridspec(1,2, wspace=.3)
+    ax = fig.add_subplot(subgrid[0])
+    plot_flat_spont(ax)
+    axs.append(ax)
 
-    for row in axs:
-        for ax in row:
-            ax.xaxis.get_label().set_fontsize(14)
-            ax.yaxis.get_label().set_fontsize(14)
-            ax.tick_params(axis='both', which='major', labelsize=12)
+    #Panel B
+    ax = fig.add_subplot(subgrid[1])
+    plot_cm_vs_rm(ax)
+    axs.append(ax)
 
-    plt.savefig('./figure-pdfs/f5-exp-cm-rm.pdf')
+
+    #Panel C
+    subgrid = grid[1].subgridspec(1, 3, wspace=.4)
+    ax = fig.add_subplot(subgrid[0])
+    plot_rm_flat_vs_spont(ax)
+    axs.append(ax)
+
+    #Panel D
+    ax = fig.add_subplot(subgrid[1])
+    plot_rm_vs_mdp(ax)
+    axs.append(ax)
+
+    #Panel E
+    ax = fig.add_subplot(subgrid[2])
+    plot_rm_vs_apd(ax)
+    axs.append(ax)
+
+    #Panel F
+    subgrid = grid[2].subgridspec(1, 3, wspace=.4)
+    ax = fig.add_subplot(subgrid[0])
+    plot_cm_flat_vs_spont(ax)
+    axs.append(ax)
+
+    #Panel G
+    ax = fig.add_subplot(subgrid[1])
+    plot_cm_vs_mdp(ax)
+    axs.append(ax)
+
+    #Panel H
+    ax = fig.add_subplot(subgrid[2])
+    plot_cm_vs_apd(ax)
+    axs.append(ax)
+
+
+    alphas = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+    for i, ax in enumerate(axs):
+        ax.set_title(alphas[i], y=.94, x=-.2)
+
+    plt.savefig('./figure-pdfs/f-exp-cm-rmv2.pdf')
     plt.show()
 
 
@@ -59,11 +108,44 @@ def plot_flat_spont(ax):
     ax.legend(loc=1)
 
 
-def plot_apd_vs_mdp(ax):
+def plot_cm_vs_rm(ax):
     all_cells = listdir('./data/cells')
 
-    mdps = []
-    apd90s = []
+    rms = []
+    cms = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        cm = cell_params['Cm'].values[0]
+        rm = cell_params['Rm'].values[0]
+
+        if rm > 4000:
+            continue
+
+        cms.append(cm)
+        rms.append(rm)
+
+    ax.scatter(cms, rms, color='k')
+    slope, intercept, r_value, p_value, std_err = stats.linregress(cms,rms)
+    regplot(cms, rms, color='k', ax=ax, line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(r'$C_m$ (pF)') 
+    ax.set_ylabel(r'$R_m$ ($G\Omega$)') 
+    ax.legend()
+
+
+def plot_rm_vs_mdp(ax):
+    all_cells = listdir('./data/cells')
+
+    mdp_spont = []
+    mdp_flat = []
+    rm_spont = []
+    rm_flat = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
@@ -71,62 +153,168 @@ def plot_apd_vs_mdp(ax):
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
-        apd90 = get_apd90(ap_dat)
+        mdp = ap_dat['Voltage (V)'].min()*1000
+        rm = cell_params['Rm'].values[0]
 
-        
-        if apd90 is not None:
-            if apd90 > 300:
-                continue
-            mdps.append(ap_dat['Voltage (V)'].min()*1000)
-            apd90s.append(apd90)
+        if rm > 4000:
+            continue
 
-    print(len(apd90s))
+        if (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > 0)):
+            mdp_spont.append(mdp)
+            rm_spont.append(rm)
+        else:
+            mdp_flat.append(mdp)
+            rm_flat.append(rm)
 
-    ax.scatter(apd90s, mdps, color='k')
+
+    rms = rm_spont + rm_flat
+    mdps = mdp_spont + mdp_flat 
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,mdps)
+    regplot(rms, mdps, color='k', ax=ax,
+            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+
+    ax.scatter(rm_spont, mdp_spont, c='k', label='Spont')
+    ax.scatter(rm_flat, mdp_flat, c='deeppink', marker='s', label='Flat')
+
+
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$APD_{90}$') 
-    ax.set_ylabel('MDP') 
+    ax.set_xlabel(r'$R_m$ ($G\Omega$)') 
+    ax.set_ylabel('MDP (mV)') 
+    ax.legend()
 
 
-def plot_cm_flat_vs_spont(ax):
+def plot_rm_vs_apd(ax):
+    all_cells = listdir('./data/cells')
+
+    apds = []
+    rms = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        rm = cell_params['Rm'].values[0]
+        apd = get_apd90(ap_dat)
+
+        if (ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) < .03:
+            continue
+
+        if rm > 4000:
+            continue
+
+
+        if apd is None:
+            continue
+
+        if apd is not None:
+            if apd > 300:
+                continue
+
+        apds.append(apd)
+        rms.append(rm)
+
+    ax.scatter(rms, apds, color='k')
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,apds)
+    regplot(rms, apds, color='k', ax=ax,
+            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(r'$R_m$ ($G\Omega$)') 
+    ax.set_ylabel(r'$APD_{90}$ (ms)') 
+
+    ax.legend()
+
+
+def plot_rm_flat_vs_spont(ax):
+
     all_cells = listdir('./data/cells')
 
     cms = []
 
-    cm_flat = []
-    cm_spont = []
+    rm_flat = []
+    rm_spont = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        rm = cell_params['Rm'].values[0]
+
+        if rm > 4000:
+            continue
 
         if (
             ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
             and
             (ap_dat['Voltage (V)'].max() > 0)):
             cc_behavior = 'Spont'
-            cm_spont.append(cell_params['Cm'].values[0])
+            rm_spont.append(cell_params['Rm'].values[0])
         else:
             cc_behavior = 'Flat'
-            cm_flat.append(cell_params['Cm'].values[0])
+            rm_flat.append(cell_params['Rm'].values[0])
 
-        cms.append([cc_behavior, cell_params['Cm'].values[0]])
+        cms.append([cc_behavior, cell_params['Rm'].values[0]])
 
-    all_cms = pd.DataFrame(cms, columns=['type', 'Cm'])
+    all_cms = pd.DataFrame(cms, columns=['type', 'Rm'])
             
-    swarmplot(x='type', y='Cm', data=all_cms, size=9, color='grey', ax=ax, zorder=1)
-    pointplot(x='type', y='Cm', data=all_cms, join=False, capsize=.05, markers='_', ax=ax, color='k', ci='sd')
+    swarmplot(x='type', y='Rm', data=all_cms, color='grey', ax=ax, zorder=1)
+    pointplot(x='type', y='Rm', data=all_cms, join=False, capsize=.05, markers='_', ax=ax, color='k', ci='sd')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel('') 
-    ax.set_ylabel('Cm') 
-    ax.set_ylim(0, 105)
+    ax.set_ylabel(r'$R_m (G\Omega)$') 
+
+
+def plot_cm_vs_apd(ax):
+    all_cells = listdir('./data/cells')
+
+    apds = []
+    cms = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        cm = cell_params['Cm'].values[0]
+
+        apd = get_apd90(ap_dat)
+
+        if apd is None:
+            continue 
+
+        if apd is not None:
+            if apd > 300:
+                continue
+
+        apds.append(apd)
+        cms.append(cm)
+
+    ax.scatter(cms, apds, color='k')
+    slope, intercept, r_value, p_value, std_err = stats.linregress(cms,apds)
+    regplot(cms, apds, color='k', ax=ax,
+            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(r'$C_m$ (pF)') 
+    ax.set_ylabel(r'$APD_{90}$ (ms)') 
+    ax.legend()
 
 
 def plot_cm_vs_mdp(ax):
@@ -155,15 +343,90 @@ def plot_cm_vs_mdp(ax):
 
     cms = cms_spont + cms_flat
     mdps = mdps_spont + mdps_flat 
-    regplot(cms, mdps, color='k', ax=ax)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(cms,mdps)
+    regplot(cms, mdps, color='k', ax=ax,
+            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
     ax.scatter(cms_spont, mdps_spont, c='k', label='Spont')
-    ax.scatter(cms_flat, mdps_flat, c='deeppink', marker='s', label='Flat', s=40)
+    ax.scatter(cms_flat, mdps_flat, c='deeppink', marker='s', label='Flat')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$C_m$') 
-    ax.set_ylabel('MDP') 
+    ax.set_xlabel(r'$C_m (pF)$') 
+    ax.set_ylabel('MDP (mV)') 
     ax.legend()
+
+
+def plot_cm_flat_vs_spont(ax):
+
+    all_cells = listdir('./data/cells')
+
+    cms = []
+
+    cm_flat = []
+    cm_spont = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        if (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > 0)):
+            cc_behavior = 'Spont'
+            cm_spont.append(cell_params['Cm'].values[0])
+        else:
+            cc_behavior = 'Flat'
+            cm_flat.append(cell_params['Cm'].values[0])
+
+        cms.append([cc_behavior, cell_params['Cm'].values[0]])
+
+    all_cms = pd.DataFrame(cms, columns=['type', 'Cm'])
+            
+    swarmplot(x='type', y='Cm', data=all_cms, color='grey', ax=ax, zorder=1)
+    pointplot(x='type', y='Cm', data=all_cms, join=False, capsize=.05, markers='_', ax=ax, color='k', ci='sd')
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel('') 
+    ax.set_ylabel(r'$C_m (pF)$') 
+    ax.set_ylim(0, 105)
+
+
+
+
+def plot_apd_vs_mdp(ax):
+    all_cells = listdir('./data/cells')
+
+    mdps = []
+    apd90s = []
+
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        apd90 = get_apd90(ap_dat)
+
+        
+        if apd90 is not None:
+            if apd90 > 300:
+                continue
+            mdps.append(ap_dat['Voltage (V)'].min()*1000)
+            apd90s.append(apd90)
+
+    print(len(apd90s))
+
+    ax.scatter(apd90s, mdps, color='k')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(r'$APD_{90}$ (ms)') 
+    ax.set_ylabel('MDP (mV)') 
 
 
 #Utility function
@@ -179,10 +442,6 @@ def get_apd90(ap_dat):
     kernel_size = 100
     kernel = np.ones(kernel_size) / kernel_size
     v_smooth = np.convolve(v, kernel, mode='same')
-
-    #plt.plot(t, v)
-    #plt.plot(t, v_smooth)
-    #plt.plot(np.diff(v_smooth))
 
     peak_idxs = find_peaks(np.diff(v_smooth), height=.1, distance=1000)[0]
 
@@ -202,7 +461,6 @@ def get_apd90(ap_dat):
     #plt.plot(t[search_space[0]:search_space[1]], v[search_space[0]:search_space[1]])
 
     return idx_apd90 / 10
-
 
 
 def main():
