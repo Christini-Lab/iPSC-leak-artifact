@@ -19,7 +19,7 @@ plt.rc('legend', fontsize = 8)
 def plot_lin_leak():
     fig = plt.figure(figsize=(6.5, 5))
 
-    fig.subplots_adjust(.1, .1, .99, .99)
+    fig.subplots_adjust(.1, .1, .95, .95)
 
     grid = fig.add_gridspec(2, 1, hspace=.15, wspace=0.1)
 
@@ -39,13 +39,20 @@ def plot_lin_leak():
 
 
 def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
-    #Plot Kernik APs
     ax_ap = fig.add_subplot(subgrid[0:2, 0:2])
 
     axs_biom = [fig.add_subplot(subgrid[0, 2]),
                 fig.add_subplot(subgrid[0, 3]),
                 fig.add_subplot(subgrid[1, 2]),
                 fig.add_subplot(subgrid[1, 3])]
+
+    if 'kernik' in base_model:
+        ax_ap.set_title('A', y=.94, x=-.2)
+        axs_biom[0].set_title('B', y=.94, x=-.2)
+    else:
+        ax_ap.set_title('C', y=.94, x=-.2)
+        axs_biom[0].set_title('D', y=.94, x=-.2)
+
 
     base, p, x = myokit.load(base_model)
     s_base = myokit.Simulation(base)

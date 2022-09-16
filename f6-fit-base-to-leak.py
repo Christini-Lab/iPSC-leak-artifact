@@ -33,8 +33,8 @@ def start_ga(pop_size=20, max_generations=10):
                           params_lower_bound=0.1,
                           params_upper_bound=10,
                           tunable_parameters=['ibna.g_b_Na',
-                                              'ibca.g_b_Ca',
-                                              'inak.g_scale'],
+                                              'ibca.g_b_Ca'
+                                              ],
                           mate_probability=0.9,
                           mutate_probability=0.9,
                           gene_swap_probability=0.2,
@@ -333,7 +333,8 @@ def plot_generation(inds,
                     gen=None,
                     is_top_ten=True,
                     lower_bound=.1,
-                    upper_bound=10):
+                    upper_bound=10,
+                    axs=None):
     if gen is None:
         gen = len(inds) - 1
 
@@ -357,8 +358,9 @@ def plot_generation(inds,
 
         fitnesses.append(ind.fitness.values[0])
 
-    fig, axs = plt.subplots(1, 2, figsize=(6.5, 2.75))
-    fig.subplots_adjust(.11, .15, .96, .98)
+    if axs is None:
+        fig, axs = plt.subplots(1, 2, figsize=(6.5, 2.75))
+        fig.subplots_adjust(.11, .15, .96, .98)
 
 
     for ax in axs:
@@ -372,23 +374,25 @@ def plot_generation(inds,
             g = log10(g)
             x = curr_x + np.random.normal(0, .05)
             g_val = 1 - fitnesses[i] / (max(fitnesses)+.5)
-            axs[0].scatter(x, g, color=(g_val, g_val, g_val), alpha=.4)
+            #axs[0].scatter(x, g, color=(g_val, g_val, g_val), alpha=.4)
+            axs[0].scatter(x, g, color=(.7, .7, .7), alpha=.2)
             #if i < 10:
             #    axs[0].scatter(x-.1, g, color='r')
 
 
         curr_x += 1
 
-
     best_vals = [log10(v) for v in best_ind[0].values()]
-    axs[0].scatter([0, 1, 2], best_vals, c='tomato', marker='s', s=20)
+    x_vals = [i for i in range(0, len(best_vals))]
+    axs[0].scatter(x_vals, best_vals, c='tomato', marker='s', s=20)
 
 
     curr_x = 0
 
     axs[0].hlines(0, -.5, (len(keys)-.5), colors='grey', linestyle='--')
     axs[0].set_xticks([i for i in range(0, len(keys))])
-    axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
+    #axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
+    axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$'])
     axs[0].set_ylim(log10(lower_bound),
                     log10(upper_bound))
     axs[0].set_ylabel(r'$Log_{10}$ $G_{scale}$')
@@ -415,12 +419,6 @@ def plot_generation(inds,
     axs[1].legend(loc=1)
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f-fit-bg-currs.pdf', transparent=True)
-
-
-    plt.show()
-
-
 
 
 creator.create('FitnessMin', base.Fitness, weights=(-1.0,))
@@ -428,12 +426,251 @@ creator.create('FitnessMin', base.Fitness, weights=(-1.0,))
 creator.create('Individual', list, fitness=creator.FitnessMin)
 
 
+def plot_background_currs(axs):
+    #1. Baseline+leak model response
+    #2. Fit model response
+
+    scales = [{'membrane.gLeak': .2,
+              'ibna.g_b_Na': 1,
+              'ibca.g_b_Ca': 1,
+              'inak.g_scale': 1},
+              {'ibna.g_b_Na': 6.6189158206846255,
+               'ibca.g_b_Ca': 0.24933241003255358,
+               'inak.g_scale': 0.8430817227634139}, 
+              {'ibna.g_b_Na': 1,
+               'ibca.g_b_Ca': 1}
+               ]
+
+    scales = [{'membrane.gLeak': .2,
+              'ibna.g_b_Na': 1,
+              'ibca.g_b_Ca': 1
+              },
+              {'ibna.g_b_Na': 7.081649113309206,
+               'ibca.g_b_Ca': 0.3127089921965326}, 
+              {'ibna.g_b_Na': 1,
+               'ibca.g_b_Ca': 1}
+               ]
+
+    iv_curves = []
+    voltages = np.arange(-90, 60, 10)
+
+    for i, mod in enumerate(['mmt/kernik_leak.mmt',
+                             'mmt/kernik_2019_mc.mmt']):
+        mod = myokit.load_model(mod)
+
+        for name, scale in scales[i].items():
+            group, param = name.split('.')
+            val = mod[group][param].value()
+            mod[group][param].set_rhs(val*scale)
+
+        sim = myokit.Simulation(mod)
+
+        t_max = 100000
+        times = np.arange(0, t_max, .5)
+
+        res_base = sim.run(t_max, log_times=times)
+
+        g_b_Na = .00029 * 1.5
+        g_b_Ca = .000592 * .62
+        Cm = 60
+
+        iv_curves.append({'i_na': np.array([]),
+                          'i_ca': np.array([]),
+                          'i_leak': np.array([]),
+                          'i_nak': np.array([])})
+
+        for v in voltages:
+            i_na = (scales[i]['ibna.g_b_Na'] *
+                        g_b_Na * (v - res_base['erev.E_Na'][-1]))
+            i_ca = (scales[i]['ibca.g_b_Ca'] *
+                        g_b_Ca * (v - res_base['erev.E_Ca'][-1])) 
+
+            iv_curves[i]['i_na'] = np.append(iv_curves[i]['i_na'], i_na)
+            iv_curves[i]['i_ca'] = np.append(iv_curves[i]['i_ca'], i_ca)
+
+            if i == 0:
+                i_leak = scales[i]['membrane.gLeak'] * v / Cm 
+                iv_curves[i]['i_leak'] = np.append(iv_curves[i]['i_leak'], i_leak)
+
+            #INaK
+            #g_scale = scales[i]['inak.g_scale']
+            #PNaK = 1.362 * 1.818
+            #Ko = 5.4
+            #Nai = res_base['nai.Nai'][-1]
+            #Km_K = 1
+            #Km_Na = 40
+            #FRT = 96.4853415 / (8.314472 * 310)
+            #i_nak = g_scale * PNaK * Ko * Nai / ((Ko + Km_K) * (Nai + Km_Na) * (1 + 0.1245 * np.exp(-0.1 * v * FRT) + 0.0353 * np.exp(-v * FRT)))
+            #iv_curves[i]['i_nak'] = np.append(iv_curves[i]['i_nak'], i_nak)
+
+    linestyles = ['-', '-', '-', '--', '--']
+    markers = ['^', 's', 'o', '^', 's']
+    colors = ['k', 'k', 'k', 'tomato', 'tomato']
+
+    axs[0].plot(voltages, iv_curves[0]['i_na'], c='k', marker='^',
+            linestyle='-', label=r'Base: $I_{bNa}$')
+    axs[0].plot(voltages, iv_curves[0]['i_ca'], c='k', marker='s',
+            linestyle='-', label=r'Base: $I_{bCa}$')
+    axs[0].plot(voltages, iv_curves[0]['i_leak'], c='k', marker='o',
+            linestyle='-', label=r'Base: $I_{leak}$')
+    axs[0].plot(voltages, iv_curves[1]['i_na'], c='tomato', marker='^',
+            linestyle='--', label=r'Fit: $I_{bNa}$')
+    axs[0].plot(voltages, iv_curves[1]['i_ca'], c='tomato', marker='s',
+            linestyle='--', label=r'Fit: $I_{bCa}$')
+
+    i_base_leak = (iv_curves[0]['i_na'] +
+                        iv_curves[0]['i_ca'] + iv_curves[0]['i_leak']
+                        )
+    i_fit = (iv_curves[1]['i_na'] + iv_curves[1]['i_ca'])
+    i_base = (iv_curves[0]['i_na'] + iv_curves[0]['i_ca'])
+    
+    curr_names = [r'Base: $I_{bNa}+I_{bCa}+I_{leak}$', r'Fit: $I_{bNa} + I_{bCa}$',
+            r'Base: $I_{bNa}+I_{bCa}$']
+
+    axs[1].plot(voltages, i_base_leak, c='k', marker='o', linestyle='-',
+            label=curr_names[0])
+    axs[1].plot(voltages, i_fit, c='tomato', marker='o', linestyle='--',
+            label=curr_names[1])
+    axs[1].plot(voltages, i_base, c='grey', marker='o', linestyle='dotted',
+            label=curr_names[2])
+
+    axs[0].legend()
+    axs[1].legend()
+
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.set_xlabel('Voltage (mV)')
+        ax.set_ylabel('Current (A/F)')
+
+
+def get_mod_response(conductances, vc_proto, f_name):
+
+    mod = myokit.load_model(f_name)
+
+    for cond, g in conductances.items():
+        group, param = cond.split('.')
+        val = mod[group][param].value()
+        mod[group][param].set_rhs(val*g)
+
+    p = mod.get('engine.pace')
+    p.set_binding(None)
+
+    v = mod.get('membrane.V')
+    v.demote()
+    v.set_rhs(0)
+    v.set_binding('pace')
+
+    t_max = vc_proto.characteristic_time()
+
+    sim = myokit.Simulation(mod, vc_proto)
+
+    times = np.arange(0, t_max, 0.1)
+
+    dat = sim.run(t_max, log_times=times)
+
+    return times, dat
+
+
+def plot_figures():
+    fig, axs = plt.subplots(2, 2, figsize=(6.5, 5.5))
+
+    fig.subplots_adjust(.11, .09, .96, .96, wspace=.25, hspace=.2)
+
+    all_individuals = pickle.load(
+            open('./data/ga_results/inds_bCa_bNa.pkl', 'rb'))
+
+    plot_generation(all_individuals,
+                    gen=None,
+                    is_top_ten=False,
+                    lower_bound=.1,
+                    upper_bound=10,
+                    axs=axs[0])
+
+    plot_background_currs(axs[1])
+
+    letters = ['A', 'B', 'C', 'D']
+
+    axs = axs.flatten()
+
+    for i, ax in enumerate(axs):
+        ax.set_title(letters[i], y=.94, x=-.2)
+
+
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    plt.savefig('./figure-pdfs/f-backround-fit.pdf', transparent=True)
+
+    plt.show()
+
+
+def test_plot_bg_sodium():
+    fig, axs = plt.subplots(2, 1,sharex=True, figsize=(12, 8))
+
+    inds = pickle.load(open('./data/ga_results/inds.pkl', 'rb'))
+    pop = inds[-1]
+
+    pop.sort(key=lambda x: x.fitness.values[0])
+    best_ind = pop[0]
+
+    labs = ['original', 'best ind']
+
+    for i, param_updates in enumerate([{}, best_ind[0]]):
+        mfile = './mmt/kernik_2019_mc.mmt'
+        k_mod, p, x = myokit.load(mfile)
+
+        for param, val in param_updates.items():
+            group, key = param.split('.')
+            k_mod[group][key].set_rhs(val*k_mod[group][key].value())
+
+        s_base = myokit.Simulation(k_mod)
+
+        t_max = 500000
+
+        times = np.arange(0, t_max, .5)
+
+        res_base = s_base.run(t_max, log_times=times)
+
+        t = res_base.time()
+        v = res_base['membrane.V']
+
+        axs[0].plot(t, v)
+        axs[1].plot(t, res_base['nai.Nai'], label=labs[i])
+
+    
+    mfile = './mmt/kernik_leak.mmt'
+    k_mod, p, x = myokit.load(mfile)
+
+    k_mod['membrane']['gLeak'].set_rhs(.2)
+
+    s_base = myokit.Simulation(k_mod)
+
+    t_max = 500000
+
+    times = np.arange(0, t_max, .5)
+
+    res_base = s_base.run(t_max, log_times=times)
+
+    t = res_base.time()
+    v = res_base['membrane.V']
+
+    axs[0].plot(t, v)
+    axs[1].plot(t, res_base['nai.Nai'], label='Baseline+Leak')
+
+    axs[0].set_ylabel('Voltage (mV)')
+    axs[1].set_ylabel('Nai (mM)')
+    axs[1].set_xlabel('Time (ms)')
+
+    axs[1].legend()
+    
+    plt.show()
+
+
 def main():
-    #all_individuals = start_ga(pop_size=150, max_generations=20)
+    all_individuals = start_ga(pop_size=150, max_generations=20)
 
-    #pickle.dump(all_individuals, open('./data/ga_results/inds.pkl', 'wb'))
+    pickle.dump(all_individuals, open('./data/ga_results/inds_bCa_bNa.pkl', 'wb'))
 
-    all_individuals = pickle.load(open('./data/ga_results/inds.pkl', 'rb'))
+    all_individuals = pickle.load(open('./data/ga_results/inds_bCa_bNa.pkl', 'rb'))
 
     plot_generation(all_individuals,
                     gen=None,
@@ -443,5 +680,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-
+    #main()
+    plot_figures()
+    #test_plot_bg_sodium()

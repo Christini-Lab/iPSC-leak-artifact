@@ -22,7 +22,7 @@ plt.rc('legend', fontsize = 8)
 
 def plot_figure_80vs0():
     fig = plt.figure(figsize=(6.5, 2.75))
-    fig.subplots_adjust(.12, .15, .99, .99)
+    fig.subplots_adjust(.12, .15, .95, .95)
 
     grid = fig.add_gridspec(1, 2, hspace=.2, wspace=0.25)
 
@@ -39,7 +39,7 @@ def plot_figure_80vs0():
 
 def plot_figure_rm_change():
     fig = plt.figure(figsize=(6.5, 2.75))
-    fig.subplots_adjust(.07, .15, .99, .99)
+    fig.subplots_adjust(.07, .15, .95, .95)
 
     grid = fig.add_gridspec(1, 2, hspace=.2, wspace=0.3)
 
@@ -49,7 +49,6 @@ def plot_figure_rm_change():
     #panel 2
     plot_rm_vs_t(fig, grid[1])
 
-
     plt.savefig('./figure-pdfs/f_rm_change.pdf')
     plt.show()
 
@@ -58,6 +57,8 @@ def plot_gleak_effect_proto(fig, grid_box):
     subgrid = grid_box.subgridspec(2, 1, wspace=.2, hspace=.1)
 
     ax_0 = fig.add_subplot(subgrid[0, 0]) 
+    ax_0.set_title('A', y=.94, x=-.2)
+
     ax_80 = fig.add_subplot(subgrid[1, 0]) 
 
     protos = []
@@ -114,6 +115,7 @@ def plot_rm_vs_rpred(fig, grid_box):
     Cm=60
 
     ax = fig.add_subplot(subgrid[0]) 
+    ax.set_title('B', y=.94, x=-.2)
 
     r_leaks = np.linspace(.25, 1.5, 5)
     g_leaks = [1/r for r in r_leaks]
@@ -265,6 +267,7 @@ def plot_rm_change_hist(fig, grid_box):
 def plot_rm_hist(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
     ax = fig.add_subplot(subgrid[0]) 
+    ax.set_title('A', y=.94, x=-.15)
 
     all_cells = listdir('./data/cells')
 
@@ -304,6 +307,7 @@ def plot_rm_hist(fig, grid_box):
 def plot_rm_vs_t(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
     ax = fig.add_subplot(subgrid[0]) 
+    ax.set_title('B', y=.94, x=-.2)
 
     all_cells = listdir('./data/cells')
 
@@ -427,8 +431,8 @@ def get_mod_response(f_name='./mmt/kernik_2019_mc.mmt',
 
 
 def main():
-    plot_figure_80vs0()
-    #plot_figure_rm_change()
+    #plot_figure_80vs0()
+    plot_figure_rm_change()
         
 
 

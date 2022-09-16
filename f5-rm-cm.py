@@ -78,34 +78,51 @@ def plot_figure():
     plt.show()
 
 
-def plot_flat_spont(ax):
-    spont_file = '4_021921_1_alex_control'
-    flat_file = '5_031121_3_alex_control'
-    spont_long = '6_033021_4_alex_control'
+def plot_rm_flat_vs_spont(ax):
+    all_cells = listdir('./data/cells')
 
-    labels = ['Cell 1', 'Cell 2', 'Cell 3']
-    st = ['grey', 'k', 'lightsteelblue']
+    cms = []
 
-    dvdt_to_zero = [1138, 1114, 1138]
+    rm_flat = []
+    rm_spont = []
 
-    for i, f in enumerate([flat_file, spont_file, spont_long]):
-        curr_dat = pd.read_csv(f'./data/cells/{f}/Pre-drug_spont.csv')
+    for cell in all_cells:
+        if 'DS_Store' in cell:
+            continue
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
-        times = curr_dat['Time (s)'].values[:25000] * 1000 - dvdt_to_zero[i] 
-        voltages = curr_dat['Voltage (V)'].values[:25000] * 1000
+        rm = cell_params['Rm'].values[0]
 
+        if rm > 4000:
+            continue
 
-        ax.plot(times, voltages, st[i], label=labels[i])
+        if (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > 0)):
+            cc_behavior = 'Spont'
+            rm_spont.append(cell_params['Rm'].values[0])
+        else:
+            cc_behavior = 'Flat'
+            rm_flat.append(cell_params['Rm'].values[0])
 
-    ax.set_xlabel('Time (ms)')
-    ax.set_ylabel('Voltage (mV)')
+        cms.append([cc_behavior, cell_params['Rm'].values[0]])
+
+    all_cms = pd.DataFrame(cms, columns=['type', 'Rm'])
+            
+    swarmplot(x='type', y='Rm', data=all_cms, color='grey', ax=ax, zorder=1)
+    pointplot(x='type', y='Rm', data=all_cms, join=False, capsize=.05, markers='_', ax=ax, color='k', ci='sd')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlim(-500, 1000)
+    ax.set_xlabel('') 
+    ax.set_ylabel(r'$R_m (G\Omega)$') 
 
-    ax.legend(loc=1)
+    print(f'Spontaneous average is {np.average(rm_spont)}+/-{np.std(rm_spont)}')
+    print(f'Flat average is {np.average(rm_flat)}+/-{np.std(rm_flat)}')
+    print(f'Rm Spont vs Flat ttest: {stats.ttest_ind(rm_spont, rm_flat)}')
 
 
 def plot_cm_vs_rm(ax):
@@ -137,6 +154,39 @@ def plot_cm_vs_rm(ax):
     ax.set_xlabel(r'$C_m$ (pF)') 
     ax.set_ylabel(r'$R_m$ ($G\Omega$)') 
     ax.legend()
+
+    print(f'Cm vs Rm P-value is: {p_value}')
+    print(f'{len(cms)} Cells were included, because we looked only ar rm < 4000') 
+
+
+def plot_flat_spont(ax):
+    spont_file = '4_021921_1_alex_control'
+    flat_file = '5_031121_3_alex_control'
+    spont_long = '6_033021_4_alex_control'
+
+    labels = ['Cell 1', 'Cell 2', 'Cell 3']
+    st = ['grey', 'k', 'lightsteelblue']
+
+    dvdt_to_zero = [1138, 1114, 1138]
+
+    for i, f in enumerate([flat_file, spont_file, spont_long]):
+        curr_dat = pd.read_csv(f'./data/cells/{f}/Pre-drug_spont.csv')
+
+        times = curr_dat['Time (s)'].values[:25000] * 1000 - dvdt_to_zero[i] 
+        voltages = curr_dat['Voltage (V)'].values[:25000] * 1000
+
+
+        ax.plot(times, voltages, st[i], label=labels[i])
+
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Voltage (mV)')
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlim(-500, 1000)
+
+    ax.legend(loc=1)
 
 
 def plot_rm_vs_mdp(ax):
@@ -204,14 +254,22 @@ def plot_rm_vs_apd(ax):
         rm = cell_params['Rm'].values[0]
         apd = get_apd90(ap_dat)
 
-        if (ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) < .03:
+
+        if not (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > 0)):
             continue
 
         if rm > 4000:
             continue
 
-
         if apd is None:
+            
+            import pdb
+            pdb.set_trace()
+            plt.plot(ap_dat['Time (s)'], ap_dat['Voltage (V)'])
+            plt.show()
             continue
 
         if apd is not None:
@@ -234,49 +292,7 @@ def plot_rm_vs_apd(ax):
 
     ax.legend()
 
-
-def plot_rm_flat_vs_spont(ax):
-
-    all_cells = listdir('./data/cells')
-
-    cms = []
-
-    rm_flat = []
-    rm_spont = []
-
-    for cell in all_cells:
-        if 'DS_Store' in cell:
-            continue
-        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
-        cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
-
-        rm = cell_params['Rm'].values[0]
-
-        if rm > 4000:
-            continue
-
-        if (
-            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
-            and
-            (ap_dat['Voltage (V)'].max() > 0)):
-            cc_behavior = 'Spont'
-            rm_spont.append(cell_params['Rm'].values[0])
-        else:
-            cc_behavior = 'Flat'
-            rm_flat.append(cell_params['Rm'].values[0])
-
-        cms.append([cc_behavior, cell_params['Rm'].values[0]])
-
-    all_cms = pd.DataFrame(cms, columns=['type', 'Rm'])
-            
-    swarmplot(x='type', y='Rm', data=all_cms, color='grey', ax=ax, zorder=1)
-    pointplot(x='type', y='Rm', data=all_cms, join=False, capsize=.05, markers='_', ax=ax, color='k', ci='sd')
-
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-
-    ax.set_xlabel('') 
-    ax.set_ylabel(r'$R_m (G\Omega)$') 
+    print(f'Rm vs APD has {len(rms)} cells')
 
 
 def plot_cm_vs_apd(ax):
@@ -394,8 +410,6 @@ def plot_cm_flat_vs_spont(ax):
     ax.set_xlabel('') 
     ax.set_ylabel(r'$C_m (pF)$') 
     ax.set_ylim(0, 105)
-
-
 
 
 def plot_apd_vs_mdp(ax):

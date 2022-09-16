@@ -19,7 +19,7 @@ plt.rc('legend', fontsize = 8)
 
 def plot_figure():
     fig = plt.figure(figsize=(6.5, 5))
-    fig.subplots_adjust(.12, .1, .99, .99)
+    fig.subplots_adjust(.12, .1, .95, .95)
 
     grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.3)
 
@@ -45,6 +45,7 @@ def plot_whole_vc(fig, grid_box):
     subgrid = grid_box.subgridspec(2, 1, wspace=.9, hspace=.1)
 
     ax_v = fig.add_subplot(subgrid[0])
+    ax_v.set_title('A', y=.94, x=-.2)
     ax_c = fig.add_subplot(subgrid[1])
 
     pre = pd.read_csv('./data/042721_4_quinine/pre-drug_vc_proto.csv')
@@ -81,6 +82,7 @@ def plot_whole_vc(fig, grid_box):
 def plot_exp_kernik_vc(fig, grid_box):
     subgrid = grid_box.subgridspec(2, 1, wspace=.9, hspace=.1)
     ax_exp = fig.add_subplot(subgrid[0]) 
+    ax_exp.set_title('B', y=.94, x=-.2)
     plot_if_vc(ax_exp)
     ax_exp.legend()
     ax_mod = fig.add_subplot(subgrid[1]) 
@@ -92,6 +94,7 @@ def plot_gleak_effect_proto(fig, grid_box):
 
     #ax_v1 = fig.add_subplot(subgrid[0, 0]) 
     ax_out = fig.add_subplot(subgrid[0, 0]) 
+    ax_out.set_title('C', y=.94, x=-.2)
     ax_ion = fig.add_subplot(subgrid[1, 0]) 
     ax_lk = fig.add_subplot(subgrid[2, 0]) 
 
@@ -166,6 +169,7 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     Cm = 60
 
     ax = fig.add_subplot(subgrid[0]) 
+    ax.set_title('D', y=.94, x=-.2)
 
     delta_v = 5
     num_voltages = 13#27
