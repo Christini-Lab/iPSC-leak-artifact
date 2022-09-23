@@ -27,10 +27,10 @@ def plot_lin_leak():
     all_leaks = 1/10**all_leaks
 
     subgrid = grid[0, 0].subgridspec(2, 4, wspace=0.8, hspace=.3)
-    plot_mod_leak(subgrid, fig, all_leaks, './mmt/kernik_2019_mc.mmt', './mmt/kernik_leak.mmt')
+    plot_mod_leak(subgrid, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt')
 
     subgrid = grid[1, 0].subgridspec(2, 4, wspace=0.8, hspace=.3)
-    plot_mod_leak(subgrid, fig, all_leaks, './mmt/paci-2013-ventricular.mmt', './mmt/paci-2013-ventricular-leak.mmt')
+    plot_mod_leak(subgrid, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     plt.savefig('./figure-pdfs/f-leak-model-effects.pdf', transparent=True)
@@ -102,11 +102,7 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
 
         all_biomarkers.append(biomarkers)
 
-    fs = 16
-    if 'kernik' in base_model:
-        ax_ap.set_xlim(-100, 1200)
-    else:
-        ax_ap.set_xlim(-100, 2000)
+    ax_ap.set_xlim(-100, 1800)
 
     ax_ap.spines['top'].set_visible(False)
     ax_ap.spines['right'].set_visible(False)
@@ -118,6 +114,13 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
     biom_names = ['MDP (mV)', 'CL (ms)', r'$dV/dt_{max}$ (V/s)', r'$APD_{90}$ (ms)']
     all_biomarkers = np.array(all_biomarkers)
     lks = 1 / all_leaks
+
+    mdp_range = [-80, -35]
+    cl_range = [200, 1900]
+    dvdt_range = [-2, 30]
+    apd90_range = [200, 500]
+
+    biomarker_ranges = [mdp_range, cl_range, dvdt_range, apd90_range]
 
     for i, biom_name in enumerate(biom_names):
         curr_biom = all_biomarkers[:, i]
@@ -141,6 +144,7 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         axs_biom[i].set_xticks(list(range(1,11)))
         axs_biom[i].get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
         axs_biom[i].set_xticklabels(labs)
+        axs_biom[i].set_ylim(biomarker_ranges[i][0], biomarker_ranges[i][1])
 
 
 def get_biomarkers(t, v):

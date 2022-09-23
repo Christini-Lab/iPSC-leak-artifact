@@ -259,7 +259,7 @@ class Ga_Config():
 
 
 def get_kernik_ap(param_updates={}):
-    mfile = './mmt/kernik_2019_mc.mmt'
+    mfile = './mmt/kernik_2019_mc_fixed.mmt'
     k_mod, p, x = myokit.load(mfile)
 
     for param, val in param_updates.items():
@@ -283,7 +283,7 @@ def get_kernik_ap(param_updates={}):
 
 
 def get_target_ap(param_updates={'membrane.gLeak': .2}):
-    mfile = './mmt/kernik_leak.mmt'
+    mfile = './mmt/kernik_leak_fixed.mmt'
     k_mod, p, x = myokit.load(mfile)
     
     for param, val in param_updates.items():
@@ -392,7 +392,7 @@ def plot_generation(inds,
     axs[0].hlines(0, -.5, (len(keys)-.5), colors='grey', linestyle='--')
     axs[0].set_xticks([i for i in range(0, len(keys))])
     #axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
-    axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$'])
+    axs[0].set_xticklabels([r'$g_{bNa}$', '$g_{bCa}$'])
     axs[0].set_ylim(log10(lower_bound),
                     log10(upper_bound))
     axs[0].set_ylabel(r'$Log_{10}$ $G_{scale}$')
@@ -454,8 +454,8 @@ def plot_background_currs(axs):
     iv_curves = []
     voltages = np.arange(-90, 60, 10)
 
-    for i, mod in enumerate(['mmt/kernik_leak.mmt',
-                             'mmt/kernik_2019_mc.mmt']):
+    for i, mod in enumerate(['mmt/kernik_leak_fixed.mmt',
+                             'mmt/kernik_2019_mc_fixed.mmt']):
         mod = myokit.load_model(mod)
 
         for name, scale in scales[i].items():
@@ -578,7 +578,7 @@ def plot_figures():
     fig.subplots_adjust(.11, .09, .96, .96, wspace=.25, hspace=.2)
 
     all_individuals = pickle.load(
-            open('./data/ga_results/inds_bCa_bNa.pkl', 'rb'))
+            open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'rb'))
 
     plot_generation(all_individuals,
                     gen=None,
@@ -615,7 +615,7 @@ def test_plot_bg_sodium():
     labs = ['original', 'best ind']
 
     for i, param_updates in enumerate([{}, best_ind[0]]):
-        mfile = './mmt/kernik_2019_mc.mmt'
+        mfile = './mmt/kernik_2019_mc_fixed.mmt'
         k_mod, p, x = myokit.load(mfile)
 
         for param, val in param_updates.items():
@@ -637,7 +637,7 @@ def test_plot_bg_sodium():
         axs[1].plot(t, res_base['nai.Nai'], label=labs[i])
 
     
-    mfile = './mmt/kernik_leak.mmt'
+    mfile = './mmt/kernik_leak_fixed.mmt'
     k_mod, p, x = myokit.load(mfile)
 
     k_mod['membrane']['gLeak'].set_rhs(.2)
@@ -668,9 +668,9 @@ def test_plot_bg_sodium():
 def main():
     all_individuals = start_ga(pop_size=150, max_generations=20)
 
-    pickle.dump(all_individuals, open('./data/ga_results/inds_bCa_bNa.pkl', 'wb'))
+    pickle.dump(all_individuals, open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'wb'))
 
-    all_individuals = pickle.load(open('./data/ga_results/inds_bCa_bNa.pkl', 'rb'))
+    all_individuals = pickle.load(open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'rb'))
 
     plot_generation(all_individuals,
                     gen=None,

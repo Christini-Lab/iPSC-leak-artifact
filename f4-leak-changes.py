@@ -81,7 +81,7 @@ def plot_gleak_effect_proto(fig, grid_box):
         proto = protos[i]
 
         for j, g_f in enumerate([1, 2]):
-            t, dat = get_mod_response('./mmt/kernik_leak.mmt',
+            t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
                                       {'membrane.gLeak': leak,
                                        'ifunny.g_f': g_f},
                                       vc_proto=proto)
@@ -150,7 +150,7 @@ def plot_rm_vs_rpred(fig, grid_box):
                 marker = '^'
             
             for leak in g_leaks:
-                t, dat = get_mod_response('./mmt/kernik_leak.mmt',
+                t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
                                           {'membrane.gLeak': leak,
                                            'ifunny.g_f': gf,
                                            'ik1.g_K1': .1},
@@ -176,7 +176,7 @@ def plot_rm_vs_rpred(fig, grid_box):
     ax.spines['right'].set_visible(False)
 
     ax.set_xlabel(r'$R_{seal} (G\Omega)$')
-    ax.set_ylabel(r'$R_m (G\Omega)$')
+    ax.set_ylabel(r'$R_{in} (G\Omega)$')
 
     ax.legend()
 
@@ -289,14 +289,14 @@ def plot_rm_hist(fig, grid_box):
 
     print(len(all_rm))
     histplot(all_rm, ax=ax, bins=10, color='k')
-    ax.axvline(np.average(all_rm), c='grey', alpha=.9, label='Average')
-    ax.axvline(np.median(all_rm), c='grey', linestyle='--',
-            alpha=.9, label='Median')
+    #ax.axvline(np.average(all_rm), c='grey', alpha=.9, label='Average')
+    #ax.axvline(np.median(all_rm), c='grey', linestyle='--',
+    #        alpha=.9, label='Median')
 
     ax.set_xlabel(r'$R_m (M \Omega)$')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
-    ax.legend()
+    #ax.legend()
 
     print(f'Average: {np.average(all_rm_no_cutoff)}')
     print(f'Std: {np.std(all_rm_no_cutoff)}')
@@ -347,7 +347,7 @@ def plot_rm_vs_t(fig, grid_box):
     ax.scatter(delta_t, 100*np.array(delta_rm), color='k', marker='o')
 
     ax.set_xlabel(r'$\Delta Time$ (min)')
-    ax.set_ylabel(r'$R_m$ Change (%)')
+    ax.set_ylabel(r'$R_{in}$ Change (%)')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -358,7 +358,7 @@ def plot_rm_vs_t(fig, grid_box):
 
 
 #Utility function
-def get_mod_response(f_name='./mmt/kernik_2019_mc.mmt',
+def get_mod_response(f_name='./mmt/kernik_2019_mc_fixed.mmt',
                      conductances={},
                      vc_proto=None, tols=1E-8):
     mod = myokit.load_model(f_name)
