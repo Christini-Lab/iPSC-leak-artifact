@@ -44,10 +44,10 @@ def plot_figure_rm_change():
     grid = fig.add_gridspec(1, 2, hspace=.2, wspace=0.3)
 
     #panel 1
-    plot_rm_hist(fig, grid[0])
+    plot_gin_hist(fig, grid[0])
 
     #panel 2
-    plot_rm_vs_t(fig, grid[1])
+    plot_gin_vs_t(fig, grid[1])
 
     plt.savefig('./figure-pdfs/f_rm_change.pdf')
     plt.show()
@@ -244,8 +244,8 @@ def plot_rm_change_hist(fig, grid_box):
         rm_vc = cell_params['Rm'].values[1]
 
 
-        if ((rm_spont > 2500) or (rm_vc > 2500)):
-            continue
+        #if ((rm_spont > 2500) or (rm_vc > 2500)):
+        #    continue
 
         rm_change = rm_vc - rm_spont
 
@@ -264,54 +264,60 @@ def plot_rm_change_hist(fig, grid_box):
     ax.legend()
 
 
-def plot_rm_hist(fig, grid_box):
+def plot_gin_hist(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
     ax = fig.add_subplot(subgrid[0]) 
     ax.set_title('A', y=.94, x=-.15)
 
     all_cells = listdir('./data/cells')
 
-    all_rm = []
-    all_rm_no_cutoff = []
+    #all_rm = []
+    #all_rm_no_cutoff = []
+    all_gin = []
+    all_rin = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
-        rm_spont = cell_params['Rm'].values[0]
+        rm = cell_params['Rm'].values[0]
 
-        all_rm_no_cutoff.append(rm_spont)
+        all_gin.append(1/rm*1000)
+        all_rin.append(rm)
 
-        if (rm_spont > 2700):
-            continue
+        #all_rm_no_cutoff.append(rm_spont)
 
-        all_rm.append(rm_spont)
+        #if (rm_spont > 2700):
+        #    continue
 
-    print(len(all_rm))
-    histplot(all_rm, ax=ax, bins=10, color='k')
+        #all_rm.append(rm_spont)
+
+    print(len(all_gin))
+    histplot(all_gin, ax=ax, bins=12, color='k')
     #ax.axvline(np.average(all_rm), c='grey', alpha=.9, label='Average')
     #ax.axvline(np.median(all_rm), c='grey', linestyle='--',
     #        alpha=.9, label='Median')
 
-    ax.set_xlabel(r'$R_m (M \Omega)$')
+    ax.set_xlabel(r'$g_{in} (nS)$')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     #ax.legend()
 
-    print(f'Average: {np.average(all_rm_no_cutoff)}')
-    print(f'Std: {np.std(all_rm_no_cutoff)}')
-    print(f'Min: {np.min(all_rm_no_cutoff)}')
-    print(f'Max: {np.max(all_rm_no_cutoff)}')
+    print(f'Mean: {np.mean(all_gin)}')
+    print(f'Median: {np.median(all_gin)}')
+    print(f'Std: {np.std(all_gin)}')
+    print(f'Min: {np.min(all_gin)}')
+    print(f'Max: {np.max(all_gin)}')
 
 
-def plot_rm_vs_t(fig, grid_box):
+def plot_gin_vs_t(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
     ax = fig.add_subplot(subgrid[0]) 
     ax.set_title('B', y=.94, x=-.2)
 
     all_cells = listdir('./data/cells')
 
-    delta_rm = []
+    delta_gin = []
     delta_t = []
 
     for i, cell in enumerate(all_cells):
@@ -332,29 +338,32 @@ def plot_rm_vs_t(fig, grid_box):
         if minute_diff < 0:
             minute_diff = 60 - st + end
 
-        rm_change = (rm_vc - rm_spont) / rm_spont
+        gin_change = (1/rm_vc - 1/rm_spont) / (1/rm_spont)
 
-        if np.abs(rm_change) > .8:
+        if np.abs(gin_change) > .8:
             continue
-        if rm_spont > 2700:
-            continue
+        #if rm_spont > 2700:
+        #    continue
 
-        delta_rm.append(rm_change)
+        delta_gin.append(gin_change)
         delta_t.append(minute_diff)
 
-    print(len(delta_rm))
+    print(len(delta_gin))
 
-    ax.scatter(delta_t, 100*np.array(delta_rm), color='k', marker='o')
+    ax.scatter(delta_t, 100*np.array(delta_gin), color='k', marker='o')
 
     ax.set_xlabel(r'$\Delta Time$ (min)')
-    ax.set_ylabel(r'$R_{in}$ Change (%)')
+    ax.set_ylabel(r'$g_{in}$ Change (%)')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    print(f'Average time change: {np.average(np.abs(delta_rm))}')
-    print(f'Median time change: {np.median(np.abs(delta_rm))}')
-    print(f'Std time change: {np.std(np.abs(delta_rm))}')
+    print(f'Average time change: {np.mean(delta_gin)}')
+    print(f'Median time change: {np.median(delta_gin)}')
+    print(f'Std time change: {np.std(delta_gin)}')
+    print(f'Includes {len(delta_gin)} Cells')
+    import pdb
+    pdb.set_trace()
 
 
 #Utility function

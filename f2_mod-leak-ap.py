@@ -124,10 +124,10 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
 
     for i, biom_name in enumerate(biom_names):
         curr_biom = all_biomarkers[:, i]
-        axs_biom[i].plot(lks, curr_biom, c='k', alpha=.8)
+        axs_biom[i].plot(1/lks, curr_biom, c='k', alpha=.8)
         axs_biom[i].axhline(baseline_biomarkers[i],
                 color=(1, .2, .2), linestyle='--')
-        [axs_biom[i].scatter(lks[j], curr_biom[j], color=all_cols[j])
+        [axs_biom[i].scatter(1/lks[j], curr_biom[j], color=all_cols[j])
                                             for j in range(0, len(lks))]
 
         axs_biom[i].spines['top'].set_visible(False)
@@ -135,13 +135,13 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         axs_biom[i].set_xscale('log')
         if 'paci' in base_model:
             if i >1:
-                axs_biom[i].set_xlabel(r'$R_{leak} (G\Omega)$')
-        #axs_biom[i].xticks(list(range(1, 11, )))
+                axs_biom[i].set_xlabel(r'$g_{seal}\ (nS)$')
+        #axs_biom[i].xticks(np.linspace(.1, 1, .1))
         axs_biom[i].set_ylabel(biom_name)
-        labs = [1]
+        labs = [.1]
         labs += [None for i in range(2, 10)]
-        labs += [10]
-        axs_biom[i].set_xticks(list(range(1,11)))
+        labs += [1]
+        axs_biom[i].set_xticks(np.linspace(.1, 1, 10))
         axs_biom[i].get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
         axs_biom[i].set_xticklabels(labs)
         axs_biom[i].set_ylim(biomarker_ranges[i][0], biomarker_ranges[i][1])

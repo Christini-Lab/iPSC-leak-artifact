@@ -138,6 +138,7 @@ class VCSegment():
         self.end_voltage = end_voltage
 
 
+#Utility functions
 def get_single_ap(t, v):
     t = np.array(t)
     max_t = t[-1]
@@ -168,3 +169,87 @@ def get_single_ap(t, v):
     new_v = v[ap_start:ap_end]
 
     return new_t, new_v 
+
+
+def get_apd90(ap_dat):
+    t = ap_dat['Time (s)'].values * 1000
+    v = ap_dat['Voltage (V)'].values * 1000
+
+    if ((v.max() - v.min()) < 20):
+        return None
+    if v.max() < 0:
+        return None
+
+    kernel_size = 100
+    kernel = np.ones(kernel_size) / kernel_size
+    v_smooth = np.convolve(v, kernel, mode='same')
+
+    peak_idxs = find_peaks(np.diff(v_smooth), height=.1, distance=1000)[0]
+
+    if len(peak_idxs) < 2:
+        return None
+
+    min_v = np.min(v[peak_idxs[0]:peak_idxs[1]])
+    min_idx = np.argmin(v[peak_idxs[0]:peak_idxs[1]])
+    search_space = [peak_idxs[0], peak_idxs[0] + min_idx]
+    amplitude = np.max(v[search_space[0]:search_space[1]]) - min_v
+    v_90 = min_v + amplitude * .1
+    idx_apd90 = np.argmin(np.abs(v[search_space[0]:search_space[1]] - v_90))
+
+    #plt.axvline(t[idx_apd90+search_space[0]])
+
+
+    #plt.plot(t[search_space[0]:search_space[1]], v[search_space[0]:search_space[1]])
+
+    return idx_apd90 / 10
+
+
+def get_cl(ap_dat):
+    t = ap_dat['Time (s)'].values * 1000
+    v = ap_dat['Voltage (V)'].values * 1000
+
+    peak_pts = find_peaks(v, 10, distance=1000, width=200)[0]
+
+    average_cl = np.mean(np.diff(peak_pts)) / 10
+
+    return average_cl
+
+
+def get_dvdt(ap_dat):
+    t = ap_dat['Time (s)'].values * 1000
+    v = ap_dat['Voltage (V)'].values * 1000
+
+
+    #plt.plot(t, v)
+
+    peak_pts = find_peaks(v, 10, distance=1000, width=200)[0]
+
+    #plt.plot(t, v)
+
+    new_v = moving_average(v, 10)
+    new_t = moving_average(t, 10)
+
+    #plt.plot(np.diff(new_v))
+
+    v_diff = np.diff(new_v)
+
+    dvdt_maxs = []
+
+    for peak_pt in peak_pts:
+        start_pt = int(peak_pt/10-50)
+        end_pt = int(peak_pt/10)
+        dvdt_maxs.append(np.max(v_diff[start_pt:end_pt]))
+
+        #plt.axvline(peak_pt/10, -50, 20, c='c')
+        #plt.axvline(peak_pt/10-50, -50, 20, c='r')
+
+    average_dvdt = np.mean(dvdt_maxs)
+
+    return average_dvdt
+
+
+def moving_average(x, n=10):
+    idxs = range(n, len(x), n)
+    new_vals = [x[(i-n):i].mean() for i in idxs]
+    return np.array(new_vals)
+

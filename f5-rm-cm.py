@@ -102,7 +102,7 @@ def figure_cm_rm():
     #Panel C
     subgrid = grid[2].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_cm_vs_rm(ax)
+    plot_cm_vs_gin(ax)
     axs.append(ax)
 
 
@@ -126,25 +126,25 @@ def figure_rm_morph():
     #Panel A
     subgrid = grid[0, 0].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_rm_vs_mdp(ax)
+    plot_gin_vs_mdp(ax)
     axs.append(ax)
 
     #Panel B
     subgrid = grid[0, 1].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_rm_vs_apd(ax)
+    plot_gin_vs_apd(ax)
     axs.append(ax)
 
     #Panel C
     subgrid = grid[1, 0].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_rm_vs_cl(ax)
+    plot_gin_vs_cl(ax)
     axs.append(ax)
 
     #Panel D
     subgrid = grid[1, 1].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_rm_vs_dvdt(ax)
+    plot_gin_vs_dvdt(ax)
     axs.append(ax)
 
     alphas = ['A', 'B', 'C', 'D']
@@ -236,17 +236,23 @@ def plot_apd_vs_mdp(ax):
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
+
+        if '6_033021_4_alex_control' == cell:
+            continue
+
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
-        apd90 = get_apd90(ap_dat)
+        if not (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > .01)):
+            continue
 
+        apd90 = get_apd90(ap_dat)
         
-        if apd90 is not None:
-            if apd90 > 300:
-                continue
-            mdps.append(ap_dat['Voltage (V)'].min()*1000)
-            apd90s.append(apd90)
+        mdps.append(ap_dat['Voltage (V)'].min()*1000)
+        apd90s.append(apd90)
 
     print(f'Number of cells in APD vs MDP is: {len(apd90s)}')
 
@@ -256,54 +262,56 @@ def plot_apd_vs_mdp(ax):
 
     ax.set_xlabel(r'$APD_{90}$ (ms)') 
     ax.set_ylabel('MDP (mV)') 
+    print(f'APD vs MDP plot includes {len(mdps)} cells')
 
 
-def plot_cm_vs_rm(ax):
+def plot_cm_vs_gin(ax):
     all_cells = listdir('./data/cells')
 
-    rms = []
+    gins = []
     cms = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
         cm = cell_params['Cm'].values[0]
         rm = cell_params['Rm'].values[0]
 
-        if rm > 4000:
-            continue
-
         cms.append(cm)
-        rms.append(rm)
+        gins.append(1/rm*1000)
 
-    ax.scatter(cms, rms, color='k')
-    slope, intercept, r_value, p_value, std_err = stats.linregress(cms,rms)
-    regplot(cms, rms, color='k', ax=ax, line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    ax.scatter(cms, gins, color='k')
+    slope, intercept, r_value, p_value, std_err = stats.linregress(cms, gins)
+    #regplot(cms, gins, color='k', ax=ax, line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     #regplot(cms, rms, color='k', ax=ax)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$C_m$ (pF)') 
-    ax.set_ylabel(r'$R_{in}$ ($G\Omega$)') 
-    ax.legend()
+    ax.set_ylabel(r'$g_{in}$ (nS)') 
+    #ax.legend()
 
     print(f'Cm vs Rm P-value is: {p_value}')
-    print(f'{len(cms)} Cells were included, because we looked only ar rm < 4000') 
+    print(f'{len(cms)} Cells were included') 
 
 
-#Panels Rm vs Morph
-def plot_rm_vs_mdp(ax):
+#Panels Gin vs Morph
+def plot_gin_vs_mdp(ax):
     all_cells = listdir('./data/cells')
 
     mdp_spont = []
     mdp_flat = []
-    rm_spont = []
-    rm_flat = []
+    gin_spont = []
+    gin_flat = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -311,50 +319,56 @@ def plot_rm_vs_mdp(ax):
         mdp = ap_dat['Voltage (V)'].min()*1000
         rm = cell_params['Rm'].values[0]
 
-        if rm > 4000:
-            continue
-
         if (
             ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
             and
             (ap_dat['Voltage (V)'].max() > 0)):
             mdp_spont.append(mdp)
-            rm_spont.append(rm)
+            gin_spont.append(1/rm*1000)
         else:
             mdp_flat.append(mdp)
-            rm_flat.append(rm)
+            gin_flat.append(1/rm*1000)
 
-    rms = rm_spont + rm_flat
+    gins = np.concatenate([gin_spont, gin_flat])
     mdps = mdp_spont + mdp_flat 
+
+    vals_df = pd.DataFrame({'gins': gins, 'mdps': mdps})
+    vals_df = vals_df[vals_df['gins'] < 3]
 
     #print(f'')
 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,mdps)
-    regplot(rms, mdps, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
-    #regplot(rms, mdps, color='k', ax=ax)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+                vals_df['gins'],vals_df['mdps'])
+    #regplot(vals_df['gins'],vals_df['mdps'], color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
+    regplot(vals_df['gins'],vals_df['mdps'], color='k', ax=ax, ci=None)
+    ax.lines[0].set_linestyle('--')
 
-    ax.scatter(rm_spont, mdp_spont, c='k', label='Spont')
-    ax.scatter(rm_flat, mdp_flat, c='deeppink', marker='s', label='Flat')
-
+    ax.scatter(gin_spont, mdp_spont, c='k', label='Spont')
+    ax.scatter(gin_flat, mdp_flat, c='goldenrod', marker='s', label='Flat')
+    ax.axvspan(0, vals_df['gins'].max(), color='grey', alpha=.1)
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$R_{in}$ ($G\Omega$)') 
+    ax.set_xlabel(r'$g_{in}$ (nS)') 
     ax.set_ylabel('MDP (mV)') 
     ax.legend()
-    print(f'p value for Rm vs MDP is {p_value}')
+    print(f'p value for Gin vs MDP is {p_value}')
+    print(f'R value for Gin vs MDP is {r_value}')
+    print(f'Includes {len(gins)} Cells')
 
 
-def plot_rm_vs_apd(ax):
+def plot_gin_vs_apd(ax):
     all_cells = listdir('./data/cells')
 
     apds = []
-    rms = []
+    gins = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -368,42 +382,45 @@ def plot_rm_vs_apd(ax):
         rm = cell_params['Rm'].values[0]
         apd = get_apd90(ap_dat)
 
-
-        if rm > 4000:
-            continue
-
         if apd is not None:
             if apd > 300:
                 continue
 
         apds.append(apd)
-        rms.append(rm)
+        gins.append(1/rm*1000)
 
-    ax.scatter(rms, apds, color='k')
+    ax.scatter(gins, apds, color='k')
 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,apds)
-    regplot(rms, apds, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
-    #regplot(rms, apds, color='k', ax=ax)
+    vals_df = pd.DataFrame({'gins': gins, 'apds': apds})
+    vals_df = vals_df[vals_df['gins'] < 3]
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+            vals_df['gins'],vals_df['apds'])
+    #regplot(gins, apds, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
+    #regplot(vals_df['gins'],vals_df['apds'], color='k', ax=ax)#, ci=None)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$R_{in}$ ($G\Omega$)') 
+    ax.set_xlabel(r'$g_{in}$ (nS)') 
     ax.set_ylabel(r'$APD_{90}$ (ms)') 
 
-    ax.legend()
+    #ax.axvspan(0, vals_df['gins'].max(), color='grey', alpha=.1)
 
-    print(f'p value for Rm vs APD is {p_value}')
+    print(f'p value for Gin vs APD is {p_value}')
+    print(f'Includes {len(gins)} Cells')
 
 
-def plot_rm_vs_cl(ax):
+def plot_gin_vs_cl(ax):
     all_cells = listdir('./data/cells')
 
     cls = []
-    rms = []
+    gins = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -417,38 +434,36 @@ def plot_rm_vs_cl(ax):
         rm = cell_params['Rm'].values[0]
         cl = get_cl(ap_dat)
 
-
-        if rm > 4000:
-            continue
-
         cls.append(cl)
-        rms.append(rm)
+        gins.append(1/rm*1000)
 
-    ax.scatter(rms, cls, color='k')
+    ax.scatter(gins, cls, color='k')
 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,cls)
-    regplot(rms, cls, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
-    #regplot(rms, apds, color='k', ax=ax)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(gins,cls)
+    #regplot(gins, cls, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$R_{in}$ ($G\Omega$)') 
+    ax.set_xlabel(r'$g_{in}$ (nS)') 
     ax.set_ylabel(r'$CL$ (ms)') 
 
-    ax.legend()
+    #ax.legend()
 
-    print(f'p value for Rm vs CL is {p_value}')
+    print(f'p value for Gin vs CL is {p_value}')
+    print(f'Includes {len(gins)} Cells')
 
 
-def plot_rm_vs_dvdt(ax):
+def plot_gin_vs_dvdt(ax):
     all_cells = listdir('./data/cells')
 
     dvdts = []
-    rms = []
+    gins = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -462,27 +477,24 @@ def plot_rm_vs_dvdt(ax):
         rm = cell_params['Rm'].values[0]
         dvdt = get_dvdt(ap_dat)
 
-
-        if rm > 4000:
-            continue
-
         dvdts.append(dvdt)
-        rms.append(rm)
+        gins.append(1/rm*1000)
 
-    ax.scatter(rms, dvdts, color='k')
+    ax.scatter(gins, dvdts, color='k')
 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(rms,dvdts)
-    regplot(rms, dvdts, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    slope, intercept, r_value, p_value, std_err = stats.linregress(gins,dvdts)
+    #regplot(gins, dvdts, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$R_{in}$ ($G\Omega$)') 
+    ax.set_xlabel(r'$g_{in}$ (nS)') 
     ax.set_ylabel(r'$dV/dt_{max}$ (V/s)') 
 
+    #ax.legend()
 
-    ax.legend()
     print(f'p value for Rm vs dVdt is {p_value}')
+    print(f'Includes {len(gins)} Cells')
 
 
 #Panels Cm vs Morph
@@ -493,12 +505,18 @@ def plot_cm_vs_mdp(ax):
     cms_spont = []
     mdps_flat = []
     cms_flat = []
+    gin_spont = []
+    gin_flat = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
+        if '6_033021_4_alex_control' == cell:
+            continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+
+        rm = cell_params['Rm'].values[0]
 
         if (
             ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
@@ -506,18 +524,35 @@ def plot_cm_vs_mdp(ax):
             (ap_dat['Voltage (V)'].max() > 0)):
             mdps_spont.append(ap_dat['Voltage (V)'].min()*1000)
             cms_spont.append(cell_params['Cm'].values[0])
+            gin_spont.append(1/rm*1000)
         else:
             mdps_flat.append(ap_dat['Voltage (V)'].min()*1000)
             cms_flat.append(cell_params['Cm'].values[0])
+            gin_flat.append(1/rm*1000)
+
 
     cms = cms_spont + cms_flat
     mdps = mdps_spont + mdps_flat 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(cms,mdps)
-    #regplot(cms, mdps, color='k', ax=ax,
-    #        line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
-    regplot(cms, mdps, color='k', ax=ax)
+    gins = np.concatenate([gin_spont, gin_flat])
+
+    vals_df = pd.DataFrame({'gins': gins, 'cms': cms, 'mdps': mdps})
+    vals_df = vals_df[vals_df['gins'] < 3]
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+            vals_df['cms'],vals_df['mdps'])
+    regplot(vals_df['cms'],vals_df['mdps'], color='k', ax=ax, ci=None)
+    ax.lines[0].set_linestyle('--')
+    #regplot(cms, mdps, color='k', ax=ax)
     ax.scatter(cms_spont, mdps_spont, c='k', label='Spont')
-    ax.scatter(cms_flat, mdps_flat, c='deeppink', marker='s', label='Flat')
+    ax.scatter(cms_flat, mdps_flat, c='goldenrod', marker='s', label='Flat')
+
+    cms = cms_spont + cms_flat
+    mdps = mdps_spont + mdps_flat 
+    gins = np.concatenate([gin_spont, gin_flat])
+    vals_df = pd.DataFrame({'gins': gins, 'cms': cms, 'mdps': mdps})
+    vals_df = vals_df[vals_df['gins'] > 3]
+    ax.scatter(vals_df['cms'], vals_df['mdps'], c='r', marker='x', s=35, label='Excluded', linewidths=2)
+
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
@@ -526,6 +561,7 @@ def plot_cm_vs_mdp(ax):
     ax.legend()
 
     print(f'p value for Cm vs MDP is {p_value}')
+    print(f'R value for Cm vs MDP is {r_value}')
 
 
 def plot_cm_vs_apd(ax):
@@ -536,6 +572,8 @@ def plot_cm_vs_apd(ax):
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -559,14 +597,13 @@ def plot_cm_vs_apd(ax):
 
     ax.scatter(cms, apds, color='k')
     slope, intercept, r_value, p_value, std_err = stats.linregress(cms,apds)
-    regplot(cms, apds, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    #regplot(cms, apds, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$C_m$ (pF)') 
     ax.set_ylabel(r'$APD_{90}$ (ms)') 
-    ax.legend()
     print(f'p value for Cm vs APD is {p_value}')
 
 
@@ -578,6 +615,8 @@ def plot_cm_vs_cl(ax):
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -597,14 +636,13 @@ def plot_cm_vs_cl(ax):
 
     ax.scatter(cms, cls, color='k')
     slope, intercept, r_value, p_value, std_err = stats.linregress(cms,cls)
-    regplot(cms, cls, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    #regplot(cms, cls, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$C_m$ (pF)') 
     ax.set_ylabel(r'CL (ms)') 
-    ax.legend()
     print(f'p value for Cm vs CL is {p_value}')
 
 
@@ -616,6 +654,8 @@ def plot_cm_vs_dvdt(ax):
 
     for cell in all_cells:
         if 'DS_Store' in cell:
+            continue
+        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -635,14 +675,13 @@ def plot_cm_vs_dvdt(ax):
 
     ax.scatter(cms, dvdts, color='k')
     slope, intercept, r_value, p_value, std_err = stats.linregress(cms,dvdts)
-    regplot(cms, dvdts, color='k', ax=ax,
-            line_kws={'label':f'$R^2$={round(r_value**2, 3)}'})
+    #regplot(cms, dvdts, color='k', ax=ax,
+    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$C_m$ (pF)') 
     ax.set_ylabel(r'$dV/dt_{max}$ (V/s)') 
-    ax.legend()
     print(f'p value for Cm vs dV/dt is {p_value}')
 
 
@@ -734,8 +773,6 @@ def plot_rm_flat_vs_spont(ax):
     print(f'Rm Spont vs Flat ttest: {stats.ttest_ind(rm_spont, rm_flat)}')
 
 
-
-
 #Utility function
 def get_apd90(ap_dat):
     t = ap_dat['Time (s)'].values * 1000
@@ -822,8 +859,8 @@ def moving_average(x, n=10):
 
 def main():
     #plot_figure()
-    figure_cm_rm()
-    figure_rm_morph()
+    #figure_cm_rm()
+    #figure_rm_morph()
     figure_cm_morph()
 
 

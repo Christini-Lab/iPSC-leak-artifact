@@ -395,21 +395,21 @@ def plot_generation(inds,
     axs[0].set_xticklabels([r'$g_{bNa}$', '$g_{bCa}$'])
     axs[0].set_ylim(log10(lower_bound),
                     log10(upper_bound))
-    axs[0].set_ylabel(r'$Log_{10}$ $G_{scale}$')
+    axs[0].set_ylabel(r'$Log_{10}$ $g_{scale}$')
 
     t, v = get_target_ap()
-    axs[1].plot(t, v, 'k', label='Target w Leak')
+    axs[1].plot(t, v, 'k', label='Original w Leak')
 
     #t, v, cai, i_ion = get_normal_sim_dat(best_ind)
     t, v = get_kernik_ap(best_ind[0])
-    axs[1].plot(t, v, 'tomato', linestyle='--', label='Best Fit')
+    axs[1].plot(t, v, 'tomato', linestyle='--', label='Fit')
 
     print('Best individual')
     print(best_ind[0])
 
     t, v = get_kernik_ap()
     axs[1].plot(t, v, c='grey', linestyle='dotted', alpha=.5,
-                                            label='Baseline Kernik')
+                                            label='Original')
 
     #t, v, cai, i_ion = get_normal_sim_dat(None)
 
@@ -508,11 +508,11 @@ def plot_background_currs(axs):
     colors = ['k', 'k', 'k', 'tomato', 'tomato']
 
     axs[0].plot(voltages, iv_curves[0]['i_na'], c='k', marker='^',
-            linestyle='-', label=r'Base: $I_{bNa}$')
+            linestyle='-', label=r'Original: $I_{bNa}$')
     axs[0].plot(voltages, iv_curves[0]['i_ca'], c='k', marker='s',
-            linestyle='-', label=r'Base: $I_{bCa}$')
+            linestyle='-', label=r'Original: $I_{bCa}$')
     axs[0].plot(voltages, iv_curves[0]['i_leak'], c='k', marker='o',
-            linestyle='-', label=r'Base: $I_{leak}$')
+            linestyle='-', label=r'$I_{leak}$ w 5$G\Omega$')
     axs[0].plot(voltages, iv_curves[1]['i_na'], c='tomato', marker='^',
             linestyle='--', label=r'Fit: $I_{bNa}$')
     axs[0].plot(voltages, iv_curves[1]['i_ca'], c='tomato', marker='s',
@@ -524,8 +524,8 @@ def plot_background_currs(axs):
     i_fit = (iv_curves[1]['i_na'] + iv_curves[1]['i_ca'])
     i_base = (iv_curves[0]['i_na'] + iv_curves[0]['i_ca'])
     
-    curr_names = [r'Base: $I_{bNa}+I_{bCa}+I_{leak}$', r'Fit: $I_{bNa} + I_{bCa}$',
-            r'Base: $I_{bNa}+I_{bCa}$']
+    curr_names = [r'Original w leak: $I_{bNa}+I_{bCa}+I_{leak}$', r'Fit: $I_{bNa} + I_{bCa}$',
+            r'Original: $I_{bNa}+I_{bCa}$']
 
     axs[1].plot(voltages, i_base_leak, c='k', marker='o', linestyle='-',
             label=curr_names[0])

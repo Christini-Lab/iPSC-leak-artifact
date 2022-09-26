@@ -74,7 +74,7 @@ def plot_if_vc(fig, grid_box):
         ax.spines['top'].set_visible(False)
 
     ax_v.set_ylabel(r'$V_{cmd}$ (mV)')
-    ax_c.set_ylabel(r'Exp $I_m (A/F)$')
+    ax_c.set_ylabel(r'Exp $I_{out} (A/F)$')
     ax_c.set_xlabel('Time (ms)')
 
     ax_v.set_xticklabels([])
