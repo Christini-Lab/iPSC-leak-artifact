@@ -24,6 +24,7 @@ def plot_lin_leak():
     grid = fig.add_gridspec(2, 1, hspace=.15, wspace=0.1)
 
     all_leaks = np.linspace(0, 1, 10)
+    #all_leaks = np.linspace(0, 1, 2)
     all_leaks = 1/10**all_leaks
 
     subgrid = grid[0, 0].subgridspec(2, 4, wspace=0.8, hspace=.3)
@@ -111,7 +112,7 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         ax_ap.set_xlabel('Time (ms)')
 
 
-    biom_names = ['MDP (mV)', 'CL (ms)', r'$dV/dt_{max}$ (V/s)', r'$APD_{90}$ (ms)']
+    biom_names = ['MP (mV)', 'CL (ms)', r'$dV/dt_{max}$ (V/s)', r'$APD_{90}$ (ms)']
     all_biomarkers = np.array(all_biomarkers)
     lks = 1 / all_leaks
 
@@ -136,6 +137,9 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         if 'paci' in base_model:
             if i >1:
                 axs_biom[i].set_xlabel(r'$g_{seal}\ (nS)$')
+        if 'kernik' in base_model:
+            axs_biom[i].scatter(1/lks[0:2], curr_biom[0:2], facecolor='none', edgecolor='grey', s=40, marker='s')
+
         #axs_biom[i].xticks(np.linspace(.1, 1, .1))
         axs_biom[i].set_ylabel(biom_name)
         labs = [.1]
@@ -145,6 +149,7 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         axs_biom[i].get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
         axs_biom[i].set_xticklabels(labs)
         axs_biom[i].set_ylim(biomarker_ranges[i][0], biomarker_ranges[i][1])
+        axs_biom[i].set_xlim(0.08, 1.2)
 
 
 def get_biomarkers(t, v):

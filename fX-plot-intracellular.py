@@ -237,8 +237,50 @@ def plot_concentrations():
     plt.show()
 
 
+def plot_paci_kernik_baseline():
+    fig, axs = plt.subplots(4, 1, sharex=True, figsize=(12, 8))
+
+    mod = myokit.load_model('./mmt/kernik_2019_mc.mmt')
+
+    sim = myokit.Simulation(mod)
+    t_max = 100000
+    times = np.arange(0, t_max, .5)
+    res_base = sim.run(t_max, log_times=times)
+    axs[0].plot(times, res_base['membrane.V'], label='Kernik')
+    axs[1].plot(times, res_base['nai.Nai'])
+    axs[2].plot(times, res_base['cai.Cai'])
+    axs[3].plot(times, res_base['ki.Ki'], label='Kernik')
+
+
+    mod = myokit.load_model('./mmt/paci-2013-ventricular.mmt')
+    sim = myokit.Simulation(mod)
+    t_max = 100000
+    times = np.arange(0, t_max, .5)
+    res_base = sim.run(t_max, log_times=times)
+    axs[0].plot(times, res_base['membrane.V'], label='Paci')
+    axs[1].plot(times, res_base['sodium.Nai'])
+    axs[2].plot(times, res_base['calcium.Cai'])
+    #axs[3].plot(times, res_base['potassium.Ki'])
+    
+
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+    axs[-1].set_xlabel('Time (ms)')
+    axs[0].set_ylabel('Voltage (mV)')
+    axs[1].set_ylabel('Nai')
+    axs[2].set_ylabel('Cai')
+    axs[3].set_ylabel('Ki')
+
+    axs[0].legend()
+    plt.show()
+
+
+
 def main():
-    plot_concentrations()
+    #plot_concentrations()
+    plot_paci_kernik_baseline()
 
 
 if __name__ == '__main__':
