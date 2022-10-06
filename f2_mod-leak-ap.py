@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib
 from scipy.signal import find_peaks
 
-from utility_classes import get_single_ap
+from utility import get_single_ap
 
 
 plt.rcParams['lines.linewidth'] = .9
@@ -17,19 +17,20 @@ plt.rc('legend', fontsize = 8)
 
 
 def plot_lin_leak():
+    # Array with leak values
+    all_leaks = np.linspace(0, 1, 10)
+    all_leaks = 1/10**all_leaks
+    
+    # Make figure grid
     fig = plt.figure(figsize=(6.5, 5))
-
     fig.subplots_adjust(.1, .1, .95, .95)
-
     grid = fig.add_gridspec(1, 2, wspace=0.3)
 
+    # Create subgrids for left column (APs) and right columns (biomarkers)
     subgrid_aps = grid[0, 0].subgridspec(2, 1, wspace=.3, hspace=.2)
     subgrid_biom = grid[0, 1].subgridspec(4, 2, wspace=.4, hspace=.3)
 
-    all_leaks = np.linspace(0, 1, 10)
-    #all_leaks = np.linspace(0, 1, 2)
-    all_leaks = 1/10**all_leaks
-
+    # Plot APs and biomarkers for Kernik model (Panels A and C)
     ax_ap = fig.add_subplot(subgrid_aps[0])
     ax_ap.text(-300, 40, 'A', fontsize=12)
     axs_biom = [fig.add_subplot(subgrid_biom[0, 0]),
@@ -39,6 +40,7 @@ def plot_lin_leak():
     axs_biom[0].text(.05, -35, 'C', fontsize=12)
     plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt')
 
+    # Plot APs and biomarkers for Paci model (Panels B and D)
     ax_ap = fig.add_subplot(subgrid_aps[1])
     ax_ap.text(-300, 30, 'B', fontsize=12)
     axs_biom = [fig.add_subplot(subgrid_biom[0, 1]),
@@ -48,9 +50,10 @@ def plot_lin_leak():
     axs_biom[0].text(.05, -35, 'D', fontsize=12)
     plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
 
-
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f-leak-model-effects.pdf', transparent=True)
+    #plt.savefig('./figure-pdfs/f-leak-model-effects.pdf', transparent=True)
+    # Save the figure
+    plt.savefig('./figure-pdfs/f2.pdf', transparent=True)
 
     plt.show()
 
@@ -192,4 +195,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
