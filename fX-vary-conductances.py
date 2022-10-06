@@ -193,7 +193,6 @@ def run_simulation(_):
     return (single_t, single_v, biomarkers, gLeak)
 
 
-
 def get_biomarkers(t, v):
     t, v = np.asarray(t), np.asarray(v)
     mdp = np.min(v)

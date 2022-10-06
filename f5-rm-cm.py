@@ -94,9 +94,10 @@ def figure_cm_rm():
     axs.append(ax)
 
     #Panel B
-    subgrid = grid[1].subgridspec(1, 1)
-    ax = fig.add_subplot(subgrid[0])
-    plot_apd_vs_mdp(ax)
+    subgrid = grid[1].subgridspec(1, 4)
+    ax = fig.add_subplot(subgrid[0:3])
+    ax_out = fig.add_subplot(subgrid[3])
+    plot_apd_vs_mdp([ax, ax_out])
     axs.append(ax)
 
     #Panel C
@@ -108,7 +109,10 @@ def figure_cm_rm():
 
     alphas = ['A', 'B', 'C']
     for i, ax in enumerate(axs):
-        ax.set_title(alphas[i], y=.94, x=-.2)
+        if i == 1:
+            ax.set_title(alphas[i], y=.94, x=-.4)
+        else:
+            ax.set_title(alphas[i], y=.94, x=-.2)
 
     plt.savefig('./figure-pdfs/f-exp-cm-rm-corr.pdf')
     plt.show()
@@ -150,6 +154,7 @@ def figure_rm_morph():
     alphas = ['A', 'B', 'C', 'D']
     for i, ax in enumerate(axs):
         ax.set_title(alphas[i], y=.94, x=-.2)
+        ax.set_xlim(-5, 120)
 
     plt.savefig('./figure-pdfs/f-rm-vs-morph.pdf')
     plt.show()
@@ -222,12 +227,15 @@ def plot_flat_spont(ax):
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlim(-500, 1000)
+    ax.set_xlim(-500, 750)
 
-    ax.legend(loc=1)
+    #ax.legend(loc=8, framealpha=1)
 
 
-def plot_apd_vs_mdp(ax):
+def plot_apd_vs_mdp(axs):
+    ax = axs[0]
+    ax_out = axs[1]
+
     all_cells = listdir('./data/cells')
 
     mdps = []
@@ -237,8 +245,8 @@ def plot_apd_vs_mdp(ax):
         if 'DS_Store' in cell:
             continue
 
-        if '6_033021_4_alex_control' == cell:
-            continue
+        #if '6_033021_4_alex_control' == cell:
+        #    continue
 
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -257,12 +265,44 @@ def plot_apd_vs_mdp(ax):
     print(f'Number of cells in APD vs MDP is: {len(apd90s)}')
 
     ax.scatter(apd90s, mdps, color='k')
+    ax_out.scatter(apd90s, mdps, color='k')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$APD_{90}$ (ms)') 
-    ax.set_ylabel('MDP (mV)') 
+    ax.set_ylabel('MP (mV)') 
     print(f'APD vs MDP plot includes {len(mdps)} cells')
+
+    ax_out.spines['right'].set_visible(False)
+    ax_out.spines['left'].set_visible(False)
+    ax_out.spines['top'].set_visible(False)
+    ax_out.set_yticklabels([])
+    ax_out.set_yticks([])
+
+    ax.set_xlim(45, 250)
+    ax_out.set_xlim(395, 460)
+
+    ax_out.set_ylim(-75, -40)
+    ax.set_ylim(-75, -40)
+
+    d = .03
+    kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+    ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)
+
+    kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+    ax_out.plot((1.06 - d, 1.06 + d), (-d, +d), **kwargs)
+
+    ax.xaxis.set_label_coords(.7, -.12)
+
+    print('MDP vs APD')
+    print('\t')
+    print('\n')
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+                mdps, apd90s)
+    print('MDP vs APD90')
+    print(f'p value for Gin vs MDP is {p_value}')
+    print(f'R value for Gin vs MDP is {r_value}')
 
 
 def plot_cm_vs_gin(ax):
@@ -274,8 +314,8 @@ def plot_cm_vs_gin(ax):
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
-        if '6_033021_4_alex_control' == cell:
-            continue
+        #if '6_033021_4_alex_control' == cell:
+        #    continue
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
         cm = cell_params['Cm'].values[0]
@@ -307,12 +347,13 @@ def plot_gin_vs_mdp(ax):
     mdp_flat = []
     gin_spont = []
     gin_flat = []
+    cms_spont = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
-        if '6_033021_4_alex_control' == cell:
-            continue
+        #if '6_033021_4_alex_control' == cell:
+        #    continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
@@ -324,39 +365,45 @@ def plot_gin_vs_mdp(ax):
             and
             (ap_dat['Voltage (V)'].max() > 0)):
             mdp_spont.append(mdp)
-            gin_spont.append(1/rm*1000)
+            gin_spont.append(1/rm*1E6/cell_params['Cm'].values[0])
         else:
             mdp_flat.append(mdp)
-            gin_flat.append(1/rm*1000)
+            gin_flat.append(1/rm*1E6/cell_params['Cm'].values[0])
 
-    gins = np.concatenate([gin_spont, gin_flat])
-    mdps = mdp_spont + mdp_flat 
-
-    vals_df = pd.DataFrame({'gins': gins, 'mdps': mdps})
-    vals_df = vals_df[vals_df['gins'] < 3]
-
-    #print(f'')
-
-    slope, intercept, r_value, p_value, std_err = stats.linregress(
-                vals_df['gins'],vals_df['mdps'])
-    #regplot(vals_df['gins'],vals_df['mdps'], color='k', ax=ax,
-    #        line_kws={'label':f'$R$={round(r_value, 3)}; p={round(p_value, 2)}'})
-    regplot(vals_df['gins'],vals_df['mdps'], color='k', ax=ax, ci=None)
-    ax.lines[0].set_linestyle('--')
+    regplot(gin_flat,mdp_flat, color='goldenrod', ax=ax, ci=None)
+    ax.lines[0].set_linestyle('dotted')
+    regplot(gin_spont,mdp_spont, color='k', ax=ax, ci=None)
+    ax.lines[1].set_linestyle('--')
 
     ax.scatter(gin_spont, mdp_spont, c='k', label='Spont')
     ax.scatter(gin_flat, mdp_flat, c='goldenrod', marker='s', label='Flat')
-    ax.axvspan(0, vals_df['gins'].max(), color='grey', alpha=.1)
+    #ax.axvspan(0, vals_df['gins'].max(), color='grey', alpha=.1)
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$g_{in}$ (nS)') 
-    ax.set_ylabel('MDP (mV)') 
+    ax.set_xlabel(r'$g_{in}$/$C_m$ (pS/pF)') 
+    ax.set_ylabel('MP (mV)') 
     ax.legend()
-    print(f'p value for Gin vs MDP is {p_value}')
-    print(f'R value for Gin vs MDP is {r_value}')
-    print(f'Includes {len(gins)} Cells')
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+                gin_flat,mdp_flat)
+    print('Gin/Cm vs MDP')
+    print(f'\tFlat MDP: {np.mean(mdp_flat)} +/- {np.std(mdp_flat)}')
+    print(f'Flat: p value for Gin vs MDP is {p_value}')
+    print(f'Flat: R value for Gin vs MDP is {r_value}')
+    print(f'Flat: Includes {len(gin_flat)} Cells')
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(
+                gin_spont, mdp_spont)
+    print(f'\tSpont MDP: {np.mean(mdp_spont)} +/- {np.std(mdp_spont)}')
+    print(f'Spont: p value for Gin vs MDP is {p_value}')
+    print(f'Spont: R value for Gin vs MDP is {r_value}')
+    print(f'Spont: Includes {len(gin_spont)} Cells')
+
+    print('MDP vs Gin/Cm')
+    print('\t')
+    print('\n')
 
 
 def plot_gin_vs_apd(ax):
@@ -367,8 +414,6 @@ def plot_gin_vs_apd(ax):
 
     for cell in all_cells:
         if 'DS_Store' in cell:
-            continue
-        if '6_033021_4_alex_control' == cell:
             continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
@@ -382,12 +427,8 @@ def plot_gin_vs_apd(ax):
         rm = cell_params['Rm'].values[0]
         apd = get_apd90(ap_dat)
 
-        if apd is not None:
-            if apd > 300:
-                continue
-
         apds.append(apd)
-        gins.append(1/rm*1000)
+        gins.append(1/rm*1E6/cell_params['Cm'].values[0])
 
     ax.scatter(gins, apds, color='k')
 
@@ -402,11 +443,13 @@ def plot_gin_vs_apd(ax):
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_xlabel(r'$g_{in}$ (nS)') 
+    ax.set_xlabel(r'$g_{in}/C_m$ (pS/pF)') 
     ax.set_ylabel(r'$APD_{90}$ (ms)') 
 
     #ax.axvspan(0, vals_df['gins'].max(), color='grey', alpha=.1)
 
+    print('Gin/Cm vs APD90')
+    print(f'APD90 average is {np.mean(apds)} +/- {np.std(apds)}')
     print(f'p value for Gin vs APD is {p_value}')
     print(f'Includes {len(gins)} Cells')
 
@@ -420,8 +463,8 @@ def plot_gin_vs_cl(ax):
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
-        if '6_033021_4_alex_control' == cell:
-            continue
+        #if '6_033021_4_alex_control' == cell:
+        #    continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
@@ -435,7 +478,7 @@ def plot_gin_vs_cl(ax):
         cl = get_cl(ap_dat)
 
         cls.append(cl)
-        gins.append(1/rm*1000)
+        gins.append(1/rm*1E6/cell_params['Cm'].values[0])
 
     ax.scatter(gins, cls, color='k')
 
@@ -446,6 +489,7 @@ def plot_gin_vs_cl(ax):
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$g_{in}$ (nS)') 
+    ax.set_xlabel(r'$g_{in}/C_m$ (pS/pF)') 
     ax.set_ylabel(r'$CL$ (ms)') 
 
     #ax.legend()
@@ -463,8 +507,8 @@ def plot_gin_vs_dvdt(ax):
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
-        if '6_033021_4_alex_control' == cell:
-            continue
+        #if '6_033021_4_alex_control' == cell:
+        #    continue
         ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
 
@@ -478,7 +522,7 @@ def plot_gin_vs_dvdt(ax):
         dvdt = get_dvdt(ap_dat)
 
         dvdts.append(dvdt)
-        gins.append(1/rm*1000)
+        gins.append(1/rm*1E6/cell_params['Cm'].values[0])
 
     ax.scatter(gins, dvdts, color='k')
 
@@ -489,6 +533,7 @@ def plot_gin_vs_dvdt(ax):
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$g_{in}$ (nS)') 
+    ax.set_xlabel(r'$g_{in}/C_m$ (pS/pF)') 
     ax.set_ylabel(r'$dV/dt_{max}$ (V/s)') 
 
     #ax.legend()
@@ -557,7 +602,7 @@ def plot_cm_vs_mdp(ax):
     ax.spines['top'].set_visible(False)
 
     ax.set_xlabel(r'$C_m (pF)$') 
-    ax.set_ylabel('MDP (mV)') 
+    ax.set_ylabel('MP (mV)') 
     ax.legend()
 
     print(f'p value for Cm vs MDP is {p_value}')
@@ -860,8 +905,8 @@ def moving_average(x, n=10):
 def main():
     #plot_figure()
     #figure_cm_rm()
-    #figure_rm_morph()
-    figure_cm_morph()
+    figure_rm_morph()
+    #figure_cm_morph()
 
 
 if __name__ == "__main__":

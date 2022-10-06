@@ -4,6 +4,7 @@ from matplotlib import cm
 import numpy as np
 import myokit
 import matplotlib 
+from multiprocessing import Pool
 
 from utility_classes import VCSegment, VCProtocol
 
@@ -21,7 +22,7 @@ def plot_figure():
     fig = plt.figure(figsize=(6.5, 5))
     fig.subplots_adjust(.12, .1, .95, .95)
 
-    grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.2)
+    grid = fig.add_gridspec(2, 2, hspace=.2, wspace=0.3)
 
     #panel 1
     plot_if_vc(fig, grid[0, 0])
@@ -79,7 +80,9 @@ def plot_if_vc(fig, grid_box):
 
     ax_v.set_xticklabels([])
     ax_c.set_ylim(-12, 0)
-    ax_c.legend(loc=3)
+    ax_c.legend(loc=3, framealpha=1)
+
+    fig.align_ylabels([ax_v, ax_c])
 
 
 def plot_kernik_vc(fig, grid_box):
@@ -92,7 +95,7 @@ def plot_kernik_vc(fig, grid_box):
     cols = ['k', 'r']
     names = ['No Drug', 'Drug']
     for i, cond in enumerate([1, .68]):
-        t, dat = get_mod_response('./mmt/kernik_2019_mc_fixed.mmt', {'ifunny.g_f': cond})
+        t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt', {'ifunny.g_f': cond})
 
         t = t[np.argmin(np.abs(t-900)):] - 900
         i_ion = dat['membrane.i_ion'][np.argmin(np.abs(t-900)):]
@@ -119,6 +122,8 @@ def plot_kernik_vc(fig, grid_box):
 
     ax_v.set_xticklabels([])
     ax_c.set_ylim(-12, 0)
+
+    fig.align_ylabels([ax_v, ax_c])
 
 
 def plot_gleak_effect_proto(fig, grid_box):
@@ -196,6 +201,8 @@ def plot_gleak_effect_proto(fig, grid_box):
     fig.align_ylabels([ax_out, ax_ion, ax_lk])
     ax_lk.legend(loc=7, framealpha=1)
 
+    fig.align_ylabels([ax_out, ax_ion, ax_lk])
+
 
 def plot_vhold_vs_rmpred(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
@@ -205,7 +212,7 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     ax.set_title('D', y=.94, x=-.2)
 
     delta_v = 5
-    num_voltages = 13#27
+    num_voltages = 25
     voltages = np.linspace(-90, 30, num_voltages) + .1
 
     cmap = cm.get_cmap('viridis')
@@ -220,38 +227,17 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     gf_vals = {1: '0.0435 nS/pF',
                2: '0.087 nS/pF'}
 
+
     for it, g_f in enumerate([1, 2]):
-        rm_pred = []
-        for v_base in voltages:
-            mk_proto = myokit.Protocol()
-            mk_proto.add_step(v_base, 100000)
-            for i in range(0, 100):
-                mk_proto.add_step(v_base, 50)
-                mk_proto.add_step(v_base+5, 50)
+        new_dat = [[v, g_f] for v in voltages]
 
-            t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
-                                      {'membrane.gLeak': g_leak,
-                                       'ifunny.g_f': g_f,
-                                       'ik1.g_K1': g_k1},
-                                      vc_proto=mk_proto)
-
-            i_ion = dat['membrane.i_ion']
-            rm = delta_v / (i_ion[-250] - i_ion[-750]) / Cm
-            rm_pred.append(rm)
-
-            print(f'At {v_base}, Rmpred is {rm}')
-
-
+        p = Pool()
+        rm_pred = p.map(get_rm, new_dat)
 
         if it == 0:
-            #ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$g_f$={gf_vals[g_f]}')
             ax.plot(voltages, rm_pred, cols[it], marker='o')
         else:
-            #ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$g_f$={gf_vals[g_f]}', linestyle='--')
             ax.plot(voltages, rm_pred, cols[it], marker='o', linestyle='--')
-
-    #ax.plot(t, i_ion, label=f'G_f={cond}')
-    #ax.plot(t, dat['ifunny.i_f'], label=f'G_f={cond}')
 
     ax.axhline(y=1, color='r', linestyle='dotted', alpha=.3)
 
@@ -262,6 +248,29 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     ax.set_ylim(-1, 2)
     #ax.legend()
 
+
+def get_rm(inputs):
+    print(inputs)
+    v_base, g_f = inputs[0], inputs[1]
+    delta_v = 5
+    Cm = 60
+    mk_proto = myokit.Protocol()
+    mk_proto.add_step(v_base, 100000)
+    g_k1 = .1
+    g_leak = 1
+    for i in range(0, 100):
+        mk_proto.add_step(v_base, 50)
+        mk_proto.add_step(v_base+5, 50)
+
+    t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
+                              {'membrane.gLeak': g_leak,
+                               'ifunny.g_f': g_f,
+                               'ik1.g_K1': g_k1},
+                              vc_proto=mk_proto)
+
+    i_ion = dat['membrane.i_ion']
+    rm = delta_v / (i_ion[-250] - i_ion[-750]) / Cm
+    return rm
 
 
 #Helpers

@@ -335,6 +335,7 @@ def plot_generation(inds,
                     lower_bound=.1,
                     upper_bound=10,
                     axs=None):
+
     if gen is None:
         gen = len(inds) - 1
 
@@ -347,6 +348,17 @@ def plot_generation(inds,
         pop = pop[0:10]
 
     keys = [k for k in pop[0][0].keys()]
+
+    #SETUP Axes because need to rasterize
+    axs[0].set_xticks([i for i in range(0, len(keys))])
+    axs[0].set_xticklabels([r'$g_{bNa}$', '$g_{bCa}$'])
+    axs[0].set_ylim(log10(lower_bound),
+                    log10(upper_bound))
+    axs[0].set_ylabel(r'$Log_{10}$ $g_{scale}$')
+
+    axs[1].set_ylabel('Voltage (mV)')
+    axs[1].set_xlabel('Time (ms)')
+
     empty_arrs = [[] for i in range(len(keys))]
     all_ind_dict = dict(zip(keys, empty_arrs))
 
@@ -390,33 +402,35 @@ def plot_generation(inds,
     curr_x = 0
 
     axs[0].hlines(0, -.5, (len(keys)-.5), colors='grey', linestyle='--')
-    axs[0].set_xticks([i for i in range(0, len(keys))])
-    #axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
-    axs[0].set_xticklabels([r'$g_{bNa}$', '$g_{bCa}$'])
-    axs[0].set_ylim(log10(lower_bound),
-                    log10(upper_bound))
-    axs[0].set_ylabel(r'$Log_{10}$ $g_{scale}$')
+    #axs[0].set_xticks([i for i in range(0, len(keys))])
+    ##axs[0].set_xticklabels([r'$G_{bNa}$', '$G_{bCa}$', '$G_{NaK}$'])
+    #axs[0].set_xticklabels([r'$g_{bNa}$', '$g_{bCa}$'])
+    #axs[0].set_ylim(log10(lower_bound),
+    #                log10(upper_bound))
+    #axs[0].set_ylabel(r'$Log_{10}$ $g_{scale}$')
 
     t, v = get_target_ap()
-    axs[1].plot(t, v, 'k', label='Original w Leak')
+    axs[1].plot(t, v, 'k', label='Original w Leak', rasterized=True)
 
     #t, v, cai, i_ion = get_normal_sim_dat(best_ind)
     t, v = get_kernik_ap(best_ind[0])
-    axs[1].plot(t, v, 'tomato', linestyle='--', label='Fit')
+    axs[1].plot(t, v, 'tomato', linestyle='--', label='Fit', rasterized=True)
 
     print('Best individual')
     print(best_ind[0])
 
     t, v = get_kernik_ap()
     axs[1].plot(t, v, c='grey', linestyle='dotted', alpha=.5,
-                                            label='Original')
+                                            label='Original', rasterized=True)
 
     #t, v, cai, i_ion = get_normal_sim_dat(None)
 
-    axs[1].set_ylabel('Voltage (mV)')
-    axs[1].set_xlabel('Time (ms)')
+    #axs[1].set_ylabel('Voltage (mV)')
+    #axs[1].set_xlabel('Time (ms)')
 
-    axs[1].legend(loc=1)
+    axs[1].legend(loc=1, framealpha=1, bbox_to_anchor=(1.1, 1.02))
+    axs[1].set_ylim(-80, 48)
+    axs[1].set_xlim(-50, 1100)
 
     matplotlib.rcParams['pdf.fonttype'] = 42
 
@@ -483,7 +497,7 @@ def plot_background_currs(axs):
             i_na = (scales[i]['ibna.g_b_Na'] *
                         g_b_Na * (v - res_base['erev.E_Na'][-1]))
             i_ca = (scales[i]['ibca.g_b_Ca'] *
-                        g_b_Ca * (v - res_base['erev.E_Ca'][-1])) 
+                    g_b_Ca * (v - np.min(res_base['erev.E_Ca'][-2000:]))) 
 
             iv_curves[i]['i_na'] = np.append(iv_curves[i]['i_na'], i_na)
             iv_curves[i]['i_ca'] = np.append(iv_curves[i]['i_ca'], i_ca)
@@ -534,8 +548,10 @@ def plot_background_currs(axs):
     axs[1].plot(voltages, i_base, c='grey', marker='o', linestyle='dotted',
             label=curr_names[2])
 
-    axs[0].legend()
-    axs[1].legend()
+    axs[0].set_ylim(-.79, .21)
+    axs[0].legend(framealpha=1)
+    axs[1].set_ylim(-.6, .46)
+    axs[1].legend(loc=2, framealpha=1)
 
     for ax in axs:
         ax.spines['top'].set_visible(False)
@@ -544,38 +560,10 @@ def plot_background_currs(axs):
         ax.set_ylabel('Current (A/F)')
 
 
-def get_mod_response(conductances, vc_proto, f_name):
-
-    mod = myokit.load_model(f_name)
-
-    for cond, g in conductances.items():
-        group, param = cond.split('.')
-        val = mod[group][param].value()
-        mod[group][param].set_rhs(val*g)
-
-    p = mod.get('engine.pace')
-    p.set_binding(None)
-
-    v = mod.get('membrane.V')
-    v.demote()
-    v.set_rhs(0)
-    v.set_binding('pace')
-
-    t_max = vc_proto.characteristic_time()
-
-    sim = myokit.Simulation(mod, vc_proto)
-
-    times = np.arange(0, t_max, 0.1)
-
-    dat = sim.run(t_max, log_times=times)
-
-    return times, dat
-
-
 def plot_figures():
     fig, axs = plt.subplots(2, 2, figsize=(6.5, 5.5))
 
-    fig.subplots_adjust(.11, .09, .96, .96, wspace=.25, hspace=.2)
+    fig.subplots_adjust(.11, .09, .96, .95, wspace=.25, hspace=.2)
 
     all_individuals = pickle.load(
             open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'rb'))
@@ -596,9 +584,8 @@ def plot_figures():
     for i, ax in enumerate(axs):
         ax.set_title(letters[i], y=.94, x=-.2)
 
-
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f-backround-fit.pdf', transparent=True)
+    plt.savefig('./figure-pdfs/f-backround-fit.pdf', transparent=True, dpi=1000)
 
     plt.show()
 

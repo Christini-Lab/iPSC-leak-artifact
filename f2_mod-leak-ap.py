@@ -21,17 +21,33 @@ def plot_lin_leak():
 
     fig.subplots_adjust(.1, .1, .95, .95)
 
-    grid = fig.add_gridspec(2, 1, hspace=.15, wspace=0.1)
+    grid = fig.add_gridspec(1, 2, wspace=0.3)
+
+    subgrid_aps = grid[0, 0].subgridspec(2, 1, wspace=.3, hspace=.2)
+    subgrid_biom = grid[0, 1].subgridspec(4, 2, wspace=.4, hspace=.3)
 
     all_leaks = np.linspace(0, 1, 10)
     #all_leaks = np.linspace(0, 1, 2)
     all_leaks = 1/10**all_leaks
 
-    subgrid = grid[0, 0].subgridspec(2, 4, wspace=0.8, hspace=.3)
-    plot_mod_leak(subgrid, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt')
+    ax_ap = fig.add_subplot(subgrid_aps[0])
+    ax_ap.text(-300, 40, 'A', fontsize=12)
+    axs_biom = [fig.add_subplot(subgrid_biom[0, 0]),
+                fig.add_subplot(subgrid_biom[1, 0]),
+                fig.add_subplot(subgrid_biom[2, 0]),
+                fig.add_subplot(subgrid_biom[3, 0])]
+    axs_biom[0].text(.05, -35, 'C', fontsize=12)
+    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt')
 
-    subgrid = grid[1, 0].subgridspec(2, 4, wspace=0.8, hspace=.3)
-    plot_mod_leak(subgrid, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
+    ax_ap = fig.add_subplot(subgrid_aps[1])
+    ax_ap.text(-300, 30, 'B', fontsize=12)
+    axs_biom = [fig.add_subplot(subgrid_biom[0, 1]),
+                fig.add_subplot(subgrid_biom[1, 1]),
+                fig.add_subplot(subgrid_biom[2, 1]),
+                fig.add_subplot(subgrid_biom[3, 1])]
+    axs_biom[0].text(.05, -35, 'D', fontsize=12)
+    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
+
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     plt.savefig('./figure-pdfs/f-leak-model-effects.pdf', transparent=True)
@@ -39,25 +55,19 @@ def plot_lin_leak():
     plt.show()
 
 
-def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
-    ax_ap = fig.add_subplot(subgrid[0:2, 0:2])
-
-    axs_biom = [fig.add_subplot(subgrid[0, 2]),
-                fig.add_subplot(subgrid[0, 3]),
-                fig.add_subplot(subgrid[1, 2]),
-                fig.add_subplot(subgrid[1, 3])]
-
+def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
     if 'kernik' in base_model:
-        ax_ap.set_title('A', y=.94, x=-.2)
-        axs_biom[0].set_title('B', y=.94, x=-.2)
+        ax_ap.set_title('Kernik', y=.94)
+        axs_biom[0].set_title('Kernik', y=.94)
     else:
-        ax_ap.set_title('C', y=.94, x=-.2)
-        axs_biom[0].set_title('D', y=.94, x=-.2)
+        ax_ap.set_title('Paci', y=.94)
+        axs_biom[0].set_title('Paci', y=.94)
 
 
     base, p, x = myokit.load(base_model)
     s_base = myokit.Simulation(base)
-    s_base.pre(35000)
+    prepace = 500000
+    s_base.pre(prepace)
     res_base = s_base.run(10000, log_times=np.arange(0, 10000, 1))
 
     t = res_base.time()
@@ -111,17 +121,16 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
     if 'paci' in base_model:
         ax_ap.set_xlabel('Time (ms)')
 
-
-    biom_names = ['MP (mV)', 'CL (ms)', r'$dV/dt_{max}$ (V/s)', r'$APD_{90}$ (ms)']
+    biom_names = ['MP (mV)', r'$dV/dt_{max}$ (V/s)', r'$APD_{90}$ (ms)', 'CL (ms)']
     all_biomarkers = np.array(all_biomarkers)
     lks = 1 / all_leaks
 
     mdp_range = [-80, -35]
     cl_range = [200, 1900]
     dvdt_range = [-2, 30]
-    apd90_range = [200, 500]
+    apd90_range = [200, 540]
 
-    biomarker_ranges = [mdp_range, cl_range, dvdt_range, apd90_range]
+    biomarker_ranges = [mdp_range, dvdt_range, apd90_range, cl_range]
 
     for i, biom_name in enumerate(biom_names):
         curr_biom = all_biomarkers[:, i]
@@ -134,14 +143,13 @@ def plot_mod_leak(subgrid, fig, all_leaks, base_model, leak_model):
         axs_biom[i].spines['top'].set_visible(False)
         axs_biom[i].spines['right'].set_visible(False)
         axs_biom[i].set_xscale('log')
-        if 'paci' in base_model:
-            if i >1:
-                axs_biom[i].set_xlabel(r'$g_{seal}\ (nS)$')
         if 'kernik' in base_model:
             axs_biom[i].scatter(1/lks[0:2], curr_biom[0:2], facecolor='none', edgecolor='grey', s=40, marker='s')
+            axs_biom[i].set_ylabel(biom_name)
+        if i == 3:
+            axs_biom[i].set_xlabel(r'$g_{seal}\ (nS)$')
 
         #axs_biom[i].xticks(np.linspace(.1, 1, .1))
-        axs_biom[i].set_ylabel(biom_name)
         labs = [.1]
         labs += [None for i in range(2, 10)]
         labs += [1]
@@ -175,7 +183,7 @@ def get_biomarkers(t, v):
         apd90_idx = np.argmin(np.abs(v_range[pk_idx:] - apd90_v)) + pk_idx
         apd90.append(t_range[apd90_idx] - t_range[0])
 
-    return mdp, dt, dvdt, np.average(apd90)
+    return mdp, dvdt, np.average(apd90), dt
 
 
 def main():

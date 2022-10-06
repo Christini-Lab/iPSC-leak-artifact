@@ -184,23 +184,37 @@ def test_plot_bg_sodium():
 
 
 def plot_concentrations():
-    scales = [{'membrane.gLeak': .2,
+    scales = [#{'membrane.gLeak': .2,
+              #'ibna.g_b_Na': 1,
+              #'ibca.g_b_Ca': 1
+              #},
+              #{'ibna.g_b_Na': 7.081649113309206,
+              # 'ibca.g_b_Ca': 0.9703176460570058}, 
+              #{'ibna.g_b_Na': 1,
+              # 'ibca.g_b_Ca': 1},
+              {},
+              {'membrane.gLeak': .2,
               'ibna.g_b_Na': 1,
               'ibca.g_b_Ca': 1
               },
-              {'ibna.g_b_Na': 7.081649113309206,
-               'ibca.g_b_Ca': 0.9703176460570058}, 
-              {'ibna.g_b_Na': 1,
-               'ibca.g_b_Ca': 1}
+              {'ibna.g_b_Na': .01,
+               'ibca.g_b_Ca': .01,
+               'membrane.gLeak': .2}, 
                ]
 
     names = ['Baseline+Leak', 'Best Fit', 'Baseline']
+    names = ['Baseline+Leak', 'Baseline']
+    names = ['Baseline', 'Kernik+leak', 'Kernik+leak (gbNa=.01, gbCa=.01)']
 
-    fig, axs = plt.subplots(4, 1, sharex=True, figsize=(12, 8))
+    fig, axs = plt.subplots(5, 1, sharex=True, figsize=(12, 8))
 
-    for i, mod in enumerate(['mmt/kernik_leak_fixed.mmt',
-                             'mmt/kernik_2019_mc_fixed.mmt',
-                             'mmt/kernik_2019_mc_fixed.mmt']):
+    for i, mod in enumerate(['mmt/kernik_2019_mc.mmt',
+                             'mmt/kernik_leak_fixed.mmt',
+                             'mmt/kernik_leak_fixed.mmt',
+                             #'mmt/kernik_2019_mc_fixed.mmt',
+                             #'mmt/kernik_2019_mc_fixed.mmt',
+                             #'mmt/paci-2013-ventricular.mmt'
+                             ]):
         mod = myokit.load_model(mod)
 
         for name, scale in scales[i].items():
@@ -210,16 +224,23 @@ def plot_concentrations():
 
         sim = myokit.Simulation(mod)
 
-        t_max = 10000
+        t_max = 100000
         times = np.arange(0, t_max, .5)
 
         res_base = sim.run(t_max, log_times=times)
 
         axs[0].plot(times, res_base['membrane.V'], label=names[i])
         axs[1].plot(times, res_base['nai.Nai'])
-        axs[2].plot(times, res_base['cai.Cai'])
+        #axs[1].plot(times, res_base['sodium.Nai'])
+        #axs[2].plot(times, res_base['cai.Cai'])
+        #axs[2].plot(times, res_base['calcium.Cai'])
         axs[3].plot(times, res_base['ki.Ki'])
+        #axs[4].plot(times, res_base['calcium.CaSR'])
+        #axs[4].plot(times, res_base['casr.Ca_SR'])
         print(i)
+        
+        print(np.min(res_base['nai.Nai'][-10000]))
+        print(np.min(res_base['ki.Ki'][-10000]))
 
 
 
@@ -277,19 +298,59 @@ def plot_paci_kernik_baseline():
     plt.show()
 
 
+def plot_no_bg_currs():
+    scales = [{},
+              {'membrane.gLeak': .2,
+              'ibna.g_b_Na': 1,
+              'ibca.g_b_Ca': 1
+              },
+              {'ibna.g_b_Na': .01,
+               'ibca.g_b_Ca': .01,
+               'membrane.gLeak': .2}, 
+               ]
+
+    names = ['Baseline', 'Kernik+leak', 'Kernik+leak (gbNa=.01, gbCa=.01)']
+
+    fig, ax = plt.subplots(1, 1, sharex=True, figsize=(5, 8))
+
+    for i, mod in enumerate(['mmt/kernik_2019_mc.mmt',
+                             'mmt/kernik_leak_fixed.mmt',
+                             'mmt/kernik_leak_fixed.mmt',
+                             ]):
+        mod = myokit.load_model(mod)
+
+        for name, scale in scales[i].items():
+            group, param = name.split('.')
+            val = mod[group][param].value()
+            mod[group][param].set_rhs(val*scale)
+
+        sim = myokit.Simulation(mod)
+
+        t_max = 100000
+        times = np.arange(0, t_max, .5)
+
+        res_base = sim.run(t_max, log_times=times)
+
+        t, v = get_single_ap(times, res_base['membrane.V'])
+
+        ax.plot(t, v, label=names[i])
+
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Voltage (mV)')
+
+    ax.legend()
+    plt.show()
+
 
 def main():
     #plot_concentrations()
-    plot_paci_kernik_baseline()
+    #plot_paci_kernik_baseline()
+    plot_no_bg_currs()
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-

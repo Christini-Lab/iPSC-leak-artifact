@@ -274,6 +274,7 @@ def plot_gin_hist(fig, grid_box):
     #all_rm = []
     #all_rm_no_cutoff = []
     all_gin = []
+    all_gin2 = []
     all_rin = []
 
     for cell in all_cells:
@@ -283,25 +284,16 @@ def plot_gin_hist(fig, grid_box):
         rm = cell_params['Rm'].values[0]
 
         all_gin.append(1/rm*1000)
+        all_gin2.append(1/cell_params['Rm'].values[1]*1000)
         all_rin.append(rm)
 
-        #all_rm_no_cutoff.append(rm_spont)
-
-        #if (rm_spont > 2700):
-        #    continue
-
-        #all_rm.append(rm_spont)
-
     print(len(all_gin))
-    histplot(all_gin, ax=ax, bins=12, color='k')
-    #ax.axvline(np.average(all_rm), c='grey', alpha=.9, label='Average')
-    #ax.axvline(np.median(all_rm), c='grey', linestyle='--',
-    #        alpha=.9, label='Median')
+    histplot(all_gin, ax=ax, bins=12, color='k', alpha=.5, binwidth=.5)
+    #histplot(all_gin2, ax=ax, bins=12, color='red', alpha=.5, binwidth=.5)
 
     ax.set_xlabel(r'$g_{in} (nS)$')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
-    #ax.legend()
 
     print(f'Mean: {np.mean(all_gin)}')
     print(f'Median: {np.median(all_gin)}')
@@ -340,8 +332,8 @@ def plot_gin_vs_t(fig, grid_box):
 
         gin_change = (1/rm_vc - 1/rm_spont) / (1/rm_spont)
 
-        if np.abs(gin_change) > .8:
-            continue
+        #if np.abs(gin_change) > .8:
+        #    continue
         #if rm_spont > 2700:
         #    continue
 
@@ -362,9 +354,11 @@ def plot_gin_vs_t(fig, grid_box):
     print(f'Median time change: {np.median(delta_gin)}')
     print(f'Std time change: {np.std(delta_gin)}')
     print(f'Includes {len(delta_gin)} Cells')
-    import pdb
-    pdb.set_trace()
 
+    print(f'Abs Average time change: {np.mean(np.abs(delta_gin))}')
+    print(f'Median time change: {np.median(np.abs(delta_gin))}')
+    print(f'Std time change: {np.std(np.abs(delta_gin))}')
+    print(f'Includes {len(delta_gin)} Cells')
 
 #Utility function
 def get_mod_response(f_name='./mmt/kernik_2019_mc_fixed.mmt',
@@ -440,10 +434,9 @@ def get_mod_response(f_name='./mmt/kernik_2019_mc_fixed.mmt',
 
 
 def main():
-    #plot_figure_80vs0()
-    plot_figure_rm_change()
+    plot_figure_80vs0()
+    #plot_figure_rm_change()
         
-
 
 if __name__ == "__main__":
     main()

@@ -75,6 +75,7 @@ def leak_effects():
         right=False,         # ticks along the top edge are off
         labelleft=False)
 
+    ax.axhline(0, c='grey', linestyle='dotted', alpha=.5)
 
     plt.legend()
     matplotlib.rcParams['pdf.fonttype'] = 42
@@ -155,7 +156,7 @@ def get_exp_sodium_proto(scale):
 
 
 
-#leak_effects()
-plot_vc_dat()
+leak_effects()
+#plot_vc_dat()
     
 
