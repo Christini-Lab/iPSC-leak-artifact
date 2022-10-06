@@ -657,17 +657,9 @@ def fit_model():
 
     pickle.dump(all_individuals, open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'wb'))
 
-    all_individuals = pickle.load(open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'rb'))
-
-    plot_generation(all_individuals,
-                    gen=None,
-                    is_top_ten=False,
-                    lower_bound=.1,
-                    upper_bound=10)
-
 
 def main():
-    fit_model() # Fit the model
+    #fit_model() # Fit the model
     plot_figure()
 
 
