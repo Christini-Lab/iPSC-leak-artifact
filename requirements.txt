@@ -1,0 +1,3 @@
+myokit>=1.33.7
+seaborn
+deap>=1.2.2

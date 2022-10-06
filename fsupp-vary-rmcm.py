@@ -133,7 +133,6 @@ def plot_models():
     plt.show()
 
 
-
 def run_simulation(_):
     mod, p, x = myokit.load('./mmt/kernik_leak_fixed.mmt')
     limit_edge = LIMIT_EDGE 
