@@ -6,7 +6,7 @@ import myokit
 import matplotlib 
 from multiprocessing import Pool
 
-from utility_classes import VCSegment, VCProtocol
+from utility import VCSegment, VCProtocol, moving_average, get_mod_response
 
 
 plt.rcParams['lines.linewidth'] = .9
@@ -37,7 +37,7 @@ def plot_figure():
     plot_vhold_vs_rmpred(fig, grid[1, 1])
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f-funny-leak.pdf', transparent=True)
+    plt.savefig('./figure-pdfs/f5.pdf', transparent=True)
 
     plt.show()
 
@@ -129,13 +129,11 @@ def plot_kernik_vc(fig, grid_box):
 def plot_gleak_effect_proto(fig, grid_box):
     subgrid = grid_box.subgridspec(3, 1, wspace=.2, hspace=.05)
 
-    #ax_v1 = fig.add_subplot(subgrid[0, 0]) 
     ax_out = fig.add_subplot(subgrid[0, 0]) 
     ax_out.set_title('C', y=.94, x=-.2)
     ax_ion = fig.add_subplot(subgrid[1, 0]) 
     ax_lk = fig.add_subplot(subgrid[2, 0]) 
 
-    #axs = [ax_v1, ax_out, ax_ion, ax_lk]
     axs = [ax_out, ax_ion, ax_lk]
 
     leak = 1 
@@ -191,12 +189,6 @@ def plot_gleak_effect_proto(fig, grid_box):
 
     line_x = 50 
     ax_out.annotate(s='', xy=(line_x,i_out_vals[0]), xytext=(line_x,i_out_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.25", color='r', lw=.6))
-    #ax_out.hlines(y=i_out_vals[0], xmin=50, xmax=line_x, color='r', linestyle='dotted')
-    #ax_out.hlines(y=i_out_vals[1], xmin=50, xmax=line_x, color='r', linestyle='dotted')
-
-    #ax_ion.annotate(s='', xy=(line_x,i_ion_vals[0]), xytext=(line_x,i_ion_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.2", color='r', lw=1))
-    #ax_ion.hlines(y=i_ion_vals[0], xmin=50, xmax=line_x, color='r', linestyle='dotted')
-    #ax_ion.hlines(y=i_ion_vals[1], xmin=50, xmax=line_x, color='r', linestyle='dotted')
 
     fig.align_ylabels([ax_out, ax_ion, ax_lk])
     ax_lk.legend(loc=7, framealpha=1)
@@ -222,7 +214,6 @@ def plot_vhold_vs_rmpred(fig, grid_box):
 
     cols = ['k', 'grey', 'lightgrey']
     g_k1 = .1
-    #g_k1 = 1
 
     gf_vals = {1: '0.0435 nS/pF',
                2: '0.087 nS/pF'}
@@ -232,6 +223,7 @@ def plot_vhold_vs_rmpred(fig, grid_box):
         new_dat = [[v, g_f] for v in voltages]
 
         p = Pool()
+        # Change p.map to map if you get an error 
         rm_pred = p.map(get_rm, new_dat)
 
         if it == 0:
@@ -246,7 +238,6 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     ax.set_xlabel(r'$V_{hold}$ (mV)')
     ax.set_ylabel(r'$R_{in}$ ($G\Omega$)')
     ax.set_ylim(-1, 2)
-    #ax.legend()
 
 
 def get_rm(inputs):
@@ -273,125 +264,9 @@ def get_rm(inputs):
     return rm
 
 
-#Helpers
-def return_vc_proto(scale=1):
-    segments = [
-            VCSegment(500, -80),
-            VCSegment(757, 6),
-            VCSegment(7, -41),
-            VCSegment(101, 8.5),
-            VCSegment(500, -80),
-            VCSegment(106, -81),
-            VCSegment(103, -2, -34),
-            VCSegment(500, -80),
-            VCSegment(183, -87),
-            VCSegment(102, -52, 14),
-            VCSegment(500, -80),
-            VCSegment(272, 54, -107),
-            VCSegment(103, 60),
-            VCSegment(500, -80),
-            VCSegment(52, -76, -80),
-            VCSegment(103, -120),
-            VCSegment(500, -80),
-            VCSegment(188, -119.5),
-            VCSegment(752, -120),
-            VCSegment(94, -77),
-            VCSegment(8.1, -118),
-            VCSegment(500, -80),
-            VCSegment(729, 55),
-            VCSegment(1000, 48),
-            VCSegment(895, 59, 28)
-            ]
-
-    new_segments = []
-    for seg in segments:
-        if seg.end_voltage is None:
-            new_segments.append(VCSegment(seg.duration*scale, seg.start_voltage*scale))
-        else:
-            new_segments.append(VCSegment(seg.duration*scale,
-                                          seg.start_voltage*scale,
-                                          seg.end_voltage*scale))
-    
-    return VCProtocol(new_segments)
+def main():
+    plot_figure()
 
 
-def get_mod_response(f_name='./mmt/kernik_2019_mc_fixed.mmt',
-                     conductances={},
-                     vc_proto=None, tols=1E-8):
-    mod = myokit.load_model(f_name)
-
-    for cond, g in conductances.items():
-        group, param = cond.split('.')
-        val = mod[group][param].value()
-        mod[group][param].set_rhs(val*g)
-
-    p = mod.get('engine.pace')
-    p.set_binding(None)
-
-    if vc_proto is None:
-        vc_proto = return_vc_proto()
-
-    if 'myokit' not in vc_proto.__module__:
-        proto = myokit.Protocol()
-
-        proto.add_step(-80, 10000)
-
-        piecewise, segment_dict, t_max = vc_proto.get_myokit_protocol()
-
-        v = mod.get('membrane.V')
-        v.demote()
-        v.set_rhs(0)
-
-        new_seg_dict = {}
-        for k, vol in segment_dict.items():
-            new_seg_dict[k] = vol
-
-        segment_dict = new_seg_dict
-
-        mem = mod.get('membrane')
-        vp = mem.add_variable('vp')
-        vp.set_rhs(0)
-        vp.set_binding('pace')
-
-        for v_name, st in segment_dict.items():
-            v_new = mem.add_variable(v_name)
-            v_new.set_rhs(st)
-
-        v.set_rhs(piecewise)
-
-        sim = myokit.Simulation(mod, proto)
-
-        times = np.arange(0, t_max, 0.1)
-
-        dat = sim.run(t_max, log_times=times)
-
-    else:
-        p = mod.get('engine.pace')
-        p.set_binding(None)
-
-        v = mod.get('membrane.V')
-        v.demote()
-        v.set_rhs(0)
-        v.set_binding('pace')
-
-        t_max = vc_proto.characteristic_time()
-
-        sim = myokit.Simulation(mod, vc_proto)
-
-        times = np.arange(0, t_max, 0.1)
-
-        sim.set_tolerance(1E-6, tols)
-
-        dat = sim.run(t_max, log_times=times)
-
-    return times, dat
-
-
-def moving_average(x, n=10):
-    idxs = range(n, len(x), n)
-    new_vals = [x[(i-n):i].mean() for i in idxs]
-
-    return np.array(new_vals)
-
-
-plot_figure()
+if __name__ == '__main__':
+    main()

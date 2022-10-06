@@ -70,7 +70,7 @@ def start_ga(pop_size=20, max_generations=10):
     p = Pool()
     toolbox.register("map", p.map)
 
-    # Use this if you don't want multi-threading
+    # Use this if you don't want multi-threading or get an error
     #toolbox.register("map", map)
 
     # 2. Calling the GA to run
@@ -560,7 +560,7 @@ def plot_background_currs(axs):
         ax.set_ylabel('Current (A/F)')
 
 
-def plot_figures():
+def plot_figure():
     fig, axs = plt.subplots(2, 2, figsize=(6.5, 5.5))
 
     fig.subplots_adjust(.11, .09, .96, .95, wspace=.25, hspace=.2)
@@ -585,7 +585,7 @@ def plot_figures():
         ax.set_title(letters[i], y=.94, x=-.2)
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    plt.savefig('./figure-pdfs/f-backround-fit.pdf', transparent=True, dpi=1000)
+    plt.savefig('./figure-pdfs/f9.pdf', transparent=True, dpi=1000)
 
     plt.show()
 
@@ -652,7 +652,7 @@ def test_plot_bg_sodium():
     plt.show()
 
 
-def main():
+def fit_model():
     all_individuals = start_ga(pop_size=150, max_generations=20)
 
     pickle.dump(all_individuals, open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'wb'))
@@ -666,7 +666,10 @@ def main():
                     upper_bound=10)
 
 
+def main():
+    fit_model() # Fit the model
+    plot_figure()
+
+
 if __name__ == '__main__':
-    #main()
-    plot_figures()
-    #test_plot_bg_sodium()
+    main()
