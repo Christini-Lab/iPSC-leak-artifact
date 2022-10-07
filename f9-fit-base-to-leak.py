@@ -659,7 +659,10 @@ def fit_model():
 
 
 def main():
+    # Uncomment this if you want to run the GA
     #fit_model() # Fit the model
+
+    # Uncomment this to plot figure 9
     plot_figure()
 
 
