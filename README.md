@@ -13,7 +13,7 @@ The code requires Python 3.7+ and two dependencies: Myokit and DEAP. These can b
 - `mmt/` – Contains all Myokit model files  
 - `figure-pdfs` – PDF files for all manuscript figures. 
 
-As mentioned, `f9-fit-base-to-leak.py` contains the GA run to produce the results in Figure 9. To run the GA on your own computer you must uncomment `fit_model()` in the `main()`. The GA results are saved to `./data/ga_results/inds_bCa_bNa_fixed.pkl`.
+As mentioned, `f9-fit-base-to-leak.py` code for the GA used to produce the results in Figure 9. To run the GA on your own computer you must uncomment `fit_model()` in the `main()`. The GA results are saved to `./data/ga_results/inds_bCa_bNa_fixed.pkl`.
 
 #### Supporting materials 
 
