@@ -3,3 +3,4 @@ __pycache__
 figure-pdfs
 data/archive
 archived
+*.swp
