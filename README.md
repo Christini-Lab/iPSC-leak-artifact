@@ -13,7 +13,18 @@ The code requires Python 3.7+ and two dependencies: Myokit and DEAP. These can b
 - `mmt/` – Contains all Myokit model files  
 - `figure-pdfs` – PDF files for all manuscript figures. 
 
-As mentioned, `f9-fit-base-to-leak.py` contains the GA code used to produce the results in Figure 9. To run the GA on your own computer you must uncomment `fit_model()` in `main()`. The GA results are saved to `./data/ga_results/inds_bCa_bNa_fixed.pkl`.
+As mentioned, `f9-fit-base-to-leak.py` contains the GA code used to produce the results in Figure 9. To run the GA on your own computer you must uncomment `fit_model()` in `main()`. The GA results are saved to `./data/ga_results/inds_bCa_bNa_fixed.pkl`. If the code fails or get hung up when you run, try to comment out multithreading in the file. Lines 70 through 74 should look like:
+
+```py
+# To speed things up with multi-threading
+#p = Pool()
+#toolbox.register("map", p.map)
+
+# Use this if you don't want multi-threading or get an error
+toolbox.register("map", map)
+```
+
+The code will run slower, but this may resolve your issue.
 
 #### Supporting materials 
 
