@@ -1,8 +1,7 @@
 [[model]]
-name: paci-2013-ventricular
-display_name: Paci et al., 2013 (ventricular)
-version: 20211026
-mmt_authors: Michael Clerx
+name: paci-2013-ventricular-leak-fixed
+display_name: Paci et al., 2013 (ventricular, leak, fixed)
+mmt_authors: Alex Clark 
 desc: """
     Myokit version of the 2013 hiPSC model by Paci et al., ventricular version
     [1].
@@ -15,6 +14,12 @@ desc: """
     ms. In addition, the capacitance has been converted to pF and two cell
     volumes have been converted to pL, which removes a few scaling factors
     from the equations.
+
+    In this implementation, the intracellular sodium is fixed to a steady-state
+    value determined after 1000 s of spontaneous APs.
+
+    A leak current has been added to the model to show the effects of an
+    incomplete seal on the AP morphology.
 
     References:
 
