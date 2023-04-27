@@ -138,7 +138,9 @@ def plot_gleak_effect_proto(fig, grid_box):
 
     leak = 1 
     cols = ['k', 'grey']
+    cols = ['k', 'grey', 'skyblue']
     styles = ['-', '--']
+    styles = ['-', 'dotted', '--']
 
     v_base = -80
     v_step = 5
@@ -150,13 +152,14 @@ def plot_gleak_effect_proto(fig, grid_box):
         mk_proto.add_step(v_base, 50)
         mk_proto.add_step(v_base+5, 50)
 
-    gf_vals = {1: '0.0435 nS/pF',
+    gf_vals = {0: '0 nS/pF',
+               1: '0.0435 nS/pF',
                2: '0.087 nS/pF'}
 
     i_ion_vals = []
     i_out_vals = []
 
-    for j, g_f in enumerate([1, 2]):
+    for j, g_f in enumerate([0.1, 1, 2]):
         t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
                                   {'membrane.gLeak': leak,
                                    'ifunny.g_f': g_f},
@@ -169,7 +172,7 @@ def plot_gleak_effect_proto(fig, grid_box):
                                                     c=cols[j], linestyle=styles[j])
         i_ion = np.array(dat['membrane.i_ion']) - np.array(dat['membrane.ILeak'])
         axs[1].plot(t[-st:-en], i_ion[-st:-en], c=cols[j], linestyle=styles[j])
-        axs[2].plot(t[-st:-en], dat['membrane.ILeak'][-st:-en], c=cols[j], linestyle=styles[j], label=f'$g_f$={gf_vals[g_f]}')
+        axs[2].plot(t[-st:-en], dat['membrane.ILeak'][-st:-en], c=cols[j], linestyle=styles[j], label=f'$g_f$={gf_vals[j]}')
 
         i_out_vals.append(dat['membrane.i_ion'][int(-((st+en)/2))])
         i_ion_vals.append(i_ion[int(-((st+en)/2))])
@@ -188,23 +191,24 @@ def plot_gleak_effect_proto(fig, grid_box):
     ax_lk.set_xlabel('Time (ms)')
 
     line_x = 50 
-    ax_out.annotate(s='', xy=(line_x,i_out_vals[0]), xytext=(line_x,i_out_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.25", color='r', lw=.6))
+    #ax_out.annotate(s='', xy=(line_x,i_out_vals[0]), xytext=(line_x,i_out_vals[1]), arrowprops=dict(arrowstyle="<->, head_length=.25", color='r', lw=.6))
 
     fig.align_ylabels([ax_out, ax_ion, ax_lk])
-    ax_lk.legend(loc=7, framealpha=1)
+    #ax_lk.legend(loc=7, framealpha=1)
 
     fig.align_ylabels([ax_out, ax_ion, ax_lk])
 
 
 def plot_vhold_vs_rmpred(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
-    Cm = 60
+    Cm = 50
 
     ax = fig.add_subplot(subgrid[0]) 
     ax.set_title('D', y=.94, x=-.2)
 
     delta_v = 5
     num_voltages = 25
+    #num_voltages = 4
     voltages = np.linspace(-90, 30, num_voltages) + .1
 
     cmap = cm.get_cmap('viridis')
@@ -212,14 +216,15 @@ def plot_vhold_vs_rmpred(fig, grid_box):
 
     g_leak = 1
 
-    cols = ['k', 'grey', 'lightgrey']
+    cols = ['k', 'grey', 'skyblue']
     g_k1 = .1
 
-    gf_vals = {1: '0.0435 nS/pF',
+    gf_vals = {0: '0 nS/pF',
+               1: '0.0435 nS/pF',
                2: '0.087 nS/pF'}
 
 
-    for it, g_f in enumerate([1, 2]):
+    for it, g_f in enumerate([0.1, 1, 2]):
         new_dat = [[v, g_f] for v in voltages]
 
         p = Pool()
@@ -227,9 +232,11 @@ def plot_vhold_vs_rmpred(fig, grid_box):
         rm_pred = p.map(get_rm, new_dat)
 
         if it == 0:
-            ax.plot(voltages, rm_pred, cols[it], marker='o')
+            ax.plot(voltages, rm_pred, cols[it], marker='o', label=f'$g_f$={gf_vals[it]}')
+        elif it == 1:
+            ax.plot(voltages, rm_pred, cols[it], marker='o', linestyle='dotted', label=f'$g_f$={gf_vals[it]}')
         else:
-            ax.plot(voltages, rm_pred, cols[it], marker='o', linestyle='--')
+            ax.plot(voltages, rm_pred, cols[it], marker='o', linestyle='--', label=f'$g_f$={gf_vals[it]}')
 
     ax.axhline(y=1, color='r', linestyle='dotted', alpha=.3)
 
@@ -237,14 +244,15 @@ def plot_vhold_vs_rmpred(fig, grid_box):
     ax.spines['top'].set_visible(False)
     ax.set_xlabel(r'$V_{hold}$ (mV)')
     ax.set_ylabel(r'$R_{in}$ ($G\Omega$)')
-    ax.set_ylim(-1, 2)
+    ax.set_ylim(-1, 2.2)
+    ax.legend(loc=4, bbox_to_anchor=(0.5, 0.2, 0.5, 0.5), framealpha=1)
 
 
 def get_rm(inputs):
     print(inputs)
     v_base, g_f = inputs[0], inputs[1]
     delta_v = 5
-    Cm = 60
+    Cm = 50
     mk_proto = myokit.Protocol()
     mk_proto.add_step(v_base, 100000)
     g_k1 = .1

@@ -79,10 +79,13 @@ def plot_gin_vs_mdp(ax):
         if (
             ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
             and
-            (ap_dat['Voltage (V)'].max() > 0)):
+            (ap_dat['Voltage (V)'].max() > .01)):
+
             mdp_spont.append(mdp)
             gin_spont.append(1/rm*1E6/cell_params['Cm'].values[0])
         else:
+            diff = ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()
+            print(f'{cell}: {diff}')
             mdp_flat.append(mdp)
             gin_flat.append(1/rm*1E6/cell_params['Cm'].values[0])
 

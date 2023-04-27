@@ -114,6 +114,8 @@ def plot_apd_vs_mdp(axs):
         apd90s.append(apd90)
 
     print(f'Number of cells in APD vs MDP is: {len(apd90s)}')
+    print(f'Average APD90: {np.mean(apd90s)}')
+    print(f'Average MDP: {np.mean(mdps)}')
 
     ax.scatter(apd90s, mdps, color='k')
     ax_out.scatter(apd90s, mdps, color='k')
@@ -161,11 +163,21 @@ def plot_cm_vs_gin(ax):
 
     gins = []
     cms = []
+    is_ap = []
 
     for cell in all_cells:
         if 'DS_Store' in cell:
             continue
         cell_params = pd.read_excel(f'./data/cells/{cell}/cell-params.xlsx')
+        ap_dat = pd.read_csv(f'./data/cells/{cell}/Pre-drug_spont.csv')
+
+        if not (
+            ((ap_dat['Voltage (V)'].max() - ap_dat['Voltage (V)'].min()) > .03)
+            and
+            (ap_dat['Voltage (V)'].max() > .01)):
+            is_ap.append(False)
+        else:
+            is_ap.append(True)
 
         cm = cell_params['Cm'].values[0]
         rm = cell_params['Rm'].values[0]
@@ -173,6 +185,8 @@ def plot_cm_vs_gin(ax):
         cms.append(cm)
         gins.append(1/rm*1000)
 
+    [ax.scatter(cms[i], gins[i], color='k') for i in range(0, len(is_ap)) if is_ap[i]]
+    [ax.scatter(cms[i], gins[i], color='k', marker='s') for i in range(0, len(is_ap)) if not is_ap[i]]
     ax.scatter(cms, gins, color='k')
     slope, intercept, r_value, p_value, std_err = stats.linregress(cms, gins)
     ax.spines['right'].set_visible(False)
