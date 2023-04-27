@@ -4,3 +4,5 @@ figure-pdfs
 data/archive
 archived
 *.swp
+*.ai
+text

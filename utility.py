@@ -224,7 +224,7 @@ def get_single_ap(t, v):
         new_v = [v[0], v[0]]
         return new_t[0:2000], new_v[0:2000]
 
-    dvdt_peaks = find_peaks(np.diff(v), distance=400, height=.2)[0]
+    dvdt_peaks = find_peaks(np.diff(v), distance=300, height=.2)[0]
     if dvdt_peaks.size == 0:
         sample_end = np.argmin(np.abs(t - 1100))
         new_t = t[0:sample_end] -100
@@ -239,6 +239,9 @@ def get_single_ap(t, v):
 
     new_t = t[ap_start:ap_end] - t[start_idx]
     new_v = v[ap_start:ap_end]
+    #[plt.axvline(t[x]) for x in dvdt_peaks]
+    #import pdb
+    #pdb.set_trace()
 
     return new_t, new_v 
 
@@ -256,19 +259,50 @@ def get_apd90(ap_dat):
     kernel = np.ones(kernel_size) / kernel_size
     v_smooth = np.convolve(v, kernel, mode='same')
 
-    peak_idxs = find_peaks(np.diff(v_smooth), height=.1, distance=1000)[0]
+    peak_idxs = find_peaks(np.diff(v_smooth), height=.1, distance=1700)[0]
 
     if len(peak_idxs) < 2:
         return None
 
-    min_v = np.min(v[peak_idxs[0]:peak_idxs[1]])
-    min_idx = np.argmin(v[peak_idxs[0]:peak_idxs[1]])
-    search_space = [peak_idxs[0], peak_idxs[0] + min_idx]
-    amplitude = np.max(v[search_space[0]:search_space[1]]) - min_v
-    v_90 = min_v + amplitude * .1
-    idx_apd90 = np.argmin(np.abs(v[search_space[0]:search_space[1]] - v_90))
+    #if len(peak_idxs) > 1:
+    #    peak_idxs = peak_idxs[1:-1]
 
-    return idx_apd90 / 10
+    all_apd90 = []
+    all_apd90_idxs = []
+    for st in range(0, len(peak_idxs)-2):
+        end = st + 1
+        min_v = np.min(v[peak_idxs[st]:peak_idxs[end]])
+        min_idx = np.argmin(v[peak_idxs[st]:peak_idxs[end]])
+        search_space = [peak_idxs[st], peak_idxs[st] + min_idx]
+        amplitude = np.max(v[search_space[0]:search_space[1]]) - min_v
+        v_90 = min_v + amplitude * .1
+        idx_apd90 = np.argmin(np.abs(v[search_space[0]:search_space[1]] - v_90))
+        all_apd90.append(idx_apd90 / 10)
+        all_apd90_idxs.append(search_space[0] + idx_apd90)
+
+
+    #min_v = np.min(v[peak_idxs[0]:peak_idxs[1]])
+    #min_idx = np.argmin(v[peak_idxs[0]:peak_idxs[1]])
+    #search_space = [peak_idxs[0], peak_idxs[0] + min_idx]
+    #amplitude = np.max(v[search_space[0]:search_space[1]]) - min_v
+    #v_90 = min_v + amplitude * .1
+    #idx_apd90 = np.argmin(np.abs(v[search_space[0]:search_space[1]] - v_90))
+
+
+    #if np.mean(all_apd90) > 300:
+    #    plt.plot(t, v_smooth)
+    #    [plt.axvline(t[idx]) for idx in peak_idxs]
+    #    plt.show()
+    #    return all_apd90[0]
+
+    #print(np.std(all_apd90))
+    #print(np.mean(all_apd90) - idx_apd90/10)
+
+    #if  len(all_apd90) > 4:
+    print(f'Avg APD90 of {np.mean(all_apd90)} and {np.std(all_apd90)} and CV of {np.std(all_apd90)/np.mean(all_apd90)}')
+        
+    return np.mean(all_apd90)
+    #return idx_apd90 / 10
 
 
 def get_cl(ap_dat):

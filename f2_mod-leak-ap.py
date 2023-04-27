@@ -19,7 +19,9 @@ plt.rc('legend', fontsize = 8)
 def plot_lin_leak():
     # Array with leak values
     all_leaks = np.linspace(0, 1, 10)
+    #all_leaks = np.linspace(1.4, 2, 10)
     all_leaks = 1/10**all_leaks
+    is_paced = False 
     
     # Make figure grid
     fig = plt.figure(figsize=(6.5, 5))
@@ -32,13 +34,13 @@ def plot_lin_leak():
 
     # Plot APs and biomarkers for Kernik model (Panels A and C)
     ax_ap = fig.add_subplot(subgrid_aps[0])
-    ax_ap.text(-300, 40, 'A', fontsize=12)
+    ax_ap.text(-300, 44, 'A', fontsize=12)
     axs_biom = [fig.add_subplot(subgrid_biom[0, 0]),
                 fig.add_subplot(subgrid_biom[1, 0]),
                 fig.add_subplot(subgrid_biom[2, 0]),
                 fig.add_subplot(subgrid_biom[3, 0])]
-    axs_biom[0].text(.05, -35, 'C', fontsize=12)
-    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt')
+    axs_biom[0].text(.7, -15, 'C', fontsize=12)
+    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/kernik_2019_mc_fixed.mmt', './mmt/kernik_leak_fixed.mmt', is_paced=is_paced)
 
     # Plot APs and biomarkers for Paci model (Panels B and D)
     ax_ap = fig.add_subplot(subgrid_aps[1])
@@ -47,8 +49,8 @@ def plot_lin_leak():
                 fig.add_subplot(subgrid_biom[1, 1]),
                 fig.add_subplot(subgrid_biom[2, 1]),
                 fig.add_subplot(subgrid_biom[3, 1])]
-    axs_biom[0].text(.05, -35, 'D', fontsize=12)
-    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
+    axs_biom[0].text(.7, -15, 'D', fontsize=12)
+    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, './mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt', is_paced=is_paced)
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     #plt.savefig('./figure-pdfs/f-leak-model-effects.pdf', transparent=True)
@@ -58,7 +60,7 @@ def plot_lin_leak():
     plt.show()
 
 
-def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
+def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model, is_paced=False):
     if 'kernik' in base_model:
         ax_ap.set_title('Kernik', y=.94)
         axs_biom[0].set_title('Kernik', y=.94)
@@ -66,9 +68,23 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
         ax_ap.set_title('Paci', y=.94)
         axs_biom[0].set_title('Paci', y=.94)
 
+    Cm = 50
 
-    base, p, x = myokit.load(base_model)
-    s_base = myokit.Simulation(base)
+    base, proto, x = myokit.load(base_model)
+
+    proto = myokit.Protocol()
+    proto.add(myokit.ProtocolEvent(4, 10, 1, 700))
+
+    if 'kernik' in leak_model:
+        base['geom']['Cm'].set_rhs(Cm)
+    else: 
+        base['cell']['Cm'].set_rhs(Cm)
+    
+    if is_paced:
+        s_base = myokit.Simulation(base, proto)
+    else:
+        s_base = myokit.Simulation(base)
+
     prepace = 500000
     s_base.pre(prepace)
     res_base = s_base.run(10000, log_times=np.arange(0, 10000, 1))
@@ -93,12 +109,19 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
         mod, p, x = myokit.load(leak_model)
         mod['membrane']['gLeak'].set_rhs(leak)
         if 'kernik' in leak_model:
-            mod['geom']['Cm'].set_rhs(98.7)
+            mod['geom']['Cm'].set_rhs(Cm)
+        else: 
+            mod['cell']['Cm'].set_rhs(Cm)
 
-        s_base = myokit.Simulation(mod)
-        s_base.pre(15000)
+        if is_paced:
+            s_base = myokit.Simulation(mod, proto)
+        else:
+            s_base = myokit.Simulation(mod)
 
-        res_base = s_base.run(10000, log_times=np.arange(0, 10000, 1))
+        s_base.pre(100000)
+
+        t_max = 10000
+        res_base = s_base.run(t_max, log_times=np.arange(0, t_max, 1))
 
         t = res_base.time()
         v = res_base['membrane.V']
@@ -106,17 +129,25 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
         t = np.asarray(t) - 6000
         arg_t = np.argmin(np.abs(t))
 
-        single_t, single_v = get_single_ap(np.array(res_base.time()),
-                                           np.array(res_base['membrane.V']))
+        if (np.max(v) - np.min(v)) < 12:
+            single_t, single_v = t, v
+        else:
+            single_t, single_v = get_single_ap(np.array(res_base.time()),
+                                               np.array(res_base['membrane.V']))
 
         ax_ap.plot(single_t, single_v, c=all_cols[num])
 
         trace = [np.asarray(res_base.time()), np.asarray(res_base['membrane.V'])]
-        biomarkers = get_biomarkers(t, v)
+
+        try:
+            biomarkers = get_biomarkers(t, v)
+        except:
+            import pdb
+            pdb.set_trace()
 
         all_biomarkers.append(biomarkers)
 
-    ax_ap.set_xlim(-100, 1800)
+    ax_ap.set_xlim(-100, 2000)
 
     ax_ap.spines['top'].set_visible(False)
     ax_ap.spines['right'].set_visible(False)
@@ -128,39 +159,46 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, base_model, leak_model):
     all_biomarkers = np.array(all_biomarkers)
     lks = 1 / all_leaks
 
-    mdp_range = [-80, -35]
-    cl_range = [200, 1900]
+    mdp_range = [-80, -18]
+    cl_range = [200, 2000]
     dvdt_range = [-2, 30]
-    apd90_range = [200, 540]
+    apd90_range = [200, 640]
 
     biomarker_ranges = [mdp_range, dvdt_range, apd90_range, cl_range]
 
     for i, biom_name in enumerate(biom_names):
         curr_biom = all_biomarkers[:, i]
-        axs_biom[i].plot(1/lks, curr_biom, c='k', alpha=.8)
+        if ('kernik' in base_model) and biom_name != 'MP (mV)':
+            axs_biom[i].plot(lks[3:], curr_biom[3:], c='k', alpha=.8)
+            [axs_biom[i].scatter(lks[j], curr_biom[j], color=all_cols[j])
+                                                for j in range(3, len(lks))]
+            #axs_biom[i].scatter(lks[0:3], curr_biom[0:3], facecolor='none', edgecolor='grey', s=40, marker='s')
+        else:
+            axs_biom[i].plot(lks, curr_biom, c='k', alpha=.8)
+            [axs_biom[i].scatter(lks[j], curr_biom[j], color=all_cols[j])
+                                                for j in range(0, len(lks))]
+
         axs_biom[i].axhline(baseline_biomarkers[i],
                 color=(1, .2, .2), linestyle='--')
-        [axs_biom[i].scatter(1/lks[j], curr_biom[j], color=all_cols[j])
-                                            for j in range(0, len(lks))]
 
         axs_biom[i].spines['top'].set_visible(False)
         axs_biom[i].spines['right'].set_visible(False)
         axs_biom[i].set_xscale('log')
         if 'kernik' in base_model:
-            axs_biom[i].scatter(1/lks[0:2], curr_biom[0:2], facecolor='none', edgecolor='grey', s=40, marker='s')
             axs_biom[i].set_ylabel(biom_name)
+            axs_biom[i].axvspan(1, 2, color='grey', alpha=.2)
         if i == 3:
-            axs_biom[i].set_xlabel(r'$g_{seal}\ (nS)$')
+            axs_biom[i].set_xlabel(r'$R_{seal}\ (G\Omega)$')
 
         #axs_biom[i].xticks(np.linspace(.1, 1, .1))
-        labs = [.1]
+        labs = [1]
         labs += [None for i in range(2, 10)]
-        labs += [1]
-        axs_biom[i].set_xticks(np.linspace(.1, 1, 10))
+        labs += [10]
+        axs_biom[i].set_xticks(np.linspace(1, 10, 10))
         axs_biom[i].get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
         axs_biom[i].set_xticklabels(labs)
         axs_biom[i].set_ylim(biomarker_ranges[i][0], biomarker_ranges[i][1])
-        axs_biom[i].set_xlim(0.08, 1.2)
+        #axs_biom[i].set_xlim(0.08, 1.2)
 
 
 def get_biomarkers(t, v):
@@ -168,13 +206,28 @@ def get_biomarkers(t, v):
     mdp = np.min(v)
 
     pks = find_peaks(v, distance=200, height=-40)[0]
+    if len(pks) < 2:
+        return np.min(v), 0, 0, 0 
+
+    if  (np.max(v) - np.min(v)) < 12:
+        return np.min(v), 0, 0, 0
+
     dt = t[pks[3]] - t[pks[2]]
 
     dvdt_info = find_peaks(np.diff(v)/np.diff(t), height=.1, distance=150)
+        
     dvdt = np.average(dvdt_info[1]['peak_heights'])
 
     dvdt_idxs = dvdt_info[0]
-    min_v_idxs = find_peaks(-v[dvdt_idxs[0]:], height=30, distance=100)[0]+dvdt_idxs[0]
+    try:
+        min_v_idxs = find_peaks(-v[dvdt_idxs[0]:], height=30, distance=100)[0]+dvdt_idxs[0]
+    except:
+        plt.show()
+        plt.plot(t, v)
+        plt.show()
+        import pdb
+        pdb.set_trace()
+    
     apd90 = []
     for i, dvdt_idx in enumerate(dvdt_idxs[:-1]):
         v_range = v[dvdt_idx: min_v_idxs[i]]

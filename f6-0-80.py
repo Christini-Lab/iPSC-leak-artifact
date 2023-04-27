@@ -52,15 +52,15 @@ def plot_gleak_effect_proto(fig, grid_box):
 
     axs = [ax_0, ax_80]
 
-    labels = [r'$g_f$=0.0435 nS/pF', '$g_f$=0.087 nS/pF']
-    sts = ['-', '--']
-    cols = ['k', 'grey']
+    labels = [r'$g_f$=0 nS/pF', r'$g_f$=0.0435 nS/pF', '$g_f$=0.087 nS/pF']
+    sts = ['-', 'dotted', '--']
+    cols = ['k', 'grey', 'skyblue']
     leak = 1
 
     for i, ax in enumerate(axs):
         proto = protos[i]
 
-        for j, g_f in enumerate([1, 2]):
+        for j, g_f in enumerate([0.1, 1, 2]):
             t, dat = get_mod_response('./mmt/kernik_leak_fixed.mmt',
                                       {'membrane.gLeak': leak,
                                        'ifunny.g_f': g_f},
@@ -90,14 +90,14 @@ def plot_gleak_effect_proto(fig, grid_box):
 
 def plot_rm_vs_rpred(fig, grid_box):
     subgrid = grid_box.subgridspec(1, 1, wspace=.9, hspace=.1)
-    Cm=60
+    Cm=50
 
     ax = fig.add_subplot(subgrid[0]) 
     ax.set_title('B', y=.94, x=-.2)
 
     r_leaks = np.linspace(.25, 1.5, 5)
     g_leaks = [1/r for r in r_leaks]
-    gf_labels = ['0.0435 nS/pF', '0.087 nS/pF']
+    gf_labels = ['0 nS/pF', '.0435 nS/pF', '.087 nS/pF']
 
     cols =  ['k', 'grey']
 
@@ -112,15 +112,18 @@ def plot_rm_vs_rpred(fig, grid_box):
             proto.add_step(base_v, 50)
             proto.add_step(base_v+5, 50)
 
-        for gf in [1, 2]:
+        for iteration, gf in enumerate([0.1, 1, 2]):
             rm_pred = []
 
-            if gf == 1:
+            if gf == .1:
                 col = 'k'
                 st = '-'
-            else:
+            elif gf == 1:
                 col = 'grey'
-                st = '--'
+                st = 'dotted'
+            else:
+                col = 'skyblue'
+                st = 'dashed'
             
             if it == 0:
                 marker = 'o'
@@ -144,7 +147,7 @@ def plot_rm_vs_rpred(fig, grid_box):
                     c=col,
                     linestyle=st,
                     marker=marker,
-                    label=f'{int(base_v-.1)}mV, {gf_labels[gf-1]}')
+                    label=f'{int(base_v-.1)}mV, $g_f$={gf_labels[iteration]}')
     
     ax.plot(r_leaks, r_leaks, 'r', linestyle='dotted', alpha=.3)
 
@@ -154,7 +157,9 @@ def plot_rm_vs_rpred(fig, grid_box):
     ax.set_xlabel(r'$R_{seal} (G\Omega)$')
     ax.set_ylabel(r'$R_{in} (G\Omega)$')
 
-    ax.legend()
+    ax.set_ylim(0, 7)
+
+    ax.legend(loc=2, framealpha=1)
 
 
 def main():
