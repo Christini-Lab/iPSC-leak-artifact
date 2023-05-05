@@ -52,7 +52,7 @@ def plot_lin_leak():
 
 
 def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, Cm, base_model, leak_model):
-    ax_ap.set_title(f'Tor-ORd, ' + r'$C_m=$' + f'{Cm}pF', y=.91)
+    ax_ap.set_title(f'ToR-ORd, ' + r'$C_m=$' + f'{Cm}pF', y=.91)
     axs_biom[0].set_title(r'$C_m=$' + f'{Cm}pF', y=.94)
 
     t_step = .02
