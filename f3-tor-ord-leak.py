@@ -20,15 +20,15 @@ def plot_lin_leak():
     grid = fig.add_gridspec(1, 2, wspace=0.3)#, width_ratios=[1, 3])
 
     subgrid_aps = grid[0, 0].subgridspec(2, 1, wspace=.3, hspace=.2)
-    subgrid_biom = grid[0, 1].subgridspec(4, 2, wspace=.43, hspace=.3)
+    subgrid_biom = grid[0, 1].subgridspec(3, 2, wspace=.43, hspace=.3)
 
     # Plot APs and biomarkers for Kernik model (Panels A and C)
     ax_ap = fig.add_subplot(subgrid_aps[0])
     ax_ap.text(-300, 44, 'A', fontsize=12)
     axs_biom = [fig.add_subplot(subgrid_biom[0, 0]),
                 fig.add_subplot(subgrid_biom[1, 0]),
-                fig.add_subplot(subgrid_biom[2, 0]),
-                fig.add_subplot(subgrid_biom[3, 0])]
+                fig.add_subplot(subgrid_biom[2, 0]),]
+                #fig.add_subplot(subgrid_biom[3, 0])]
     axs_biom[0].text(.7, -15, 'C', fontsize=12)
     plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, 50, './mmt/tor_ord_endo.mmt', './mmt/tor_ord_endo_fixed_leak.mmt')
 
@@ -37,10 +37,10 @@ def plot_lin_leak():
     ax_ap.text(-300, 30, 'B', fontsize=12)
     axs_biom = [fig.add_subplot(subgrid_biom[0, 1]),
                 fig.add_subplot(subgrid_biom[1, 1]),
-                fig.add_subplot(subgrid_biom[2, 1]),
-                fig.add_subplot(subgrid_biom[3, 1])]
+                fig.add_subplot(subgrid_biom[2, 1]),]
+                #fig.add_subplot(subgrid_biom[3, 1])]
     axs_biom[0].text(.7, -15, 'D', fontsize=12)
-    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, 194, './mmt/tor_ord_endo.mmt', './mmt/tor_ord_endo_fixed_leak.mmt')#'./mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
+    plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, 153, './mmt/tor_ord_endo.mmt', './mmt/tor_ord_endo_fixed_leak.mmt')#'./mmt/paci-2013-ventricular-fixed.mmt', './mmt/paci-2013-ventricular-leak-fixed.mmt')
     ax_ap.set_xlabel('Time (ms)')
 
     matplotlib.rcParams['pdf.fonttype'] = 42
@@ -134,7 +134,7 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, Cm, base_model, leak_model):
 
     biomarker_ranges = [mdp_range, dvdt_range, apd90_range, cl_range]
 
-    for i, biom_name in enumerate(biom_names):
+    for i, biom_name in enumerate(biom_names[:-1]):
         curr_biom = all_biomarkers[:, i]
         if ('kernik' in base_model) and biom_name != 'MP (mV)':
             axs_biom[i].plot(lks[3:], curr_biom[3:], c='k', alpha=.8)

@@ -149,7 +149,7 @@ def plot_rm_vs_rpred(fig, grid_box):
                     marker=marker,
                     label=f'{int(base_v-.1)}mV, $g_f$={gf_labels[iteration]}')
     
-    ax.plot(r_leaks, r_leaks, 'r', linestyle='dotted', alpha=.3)
+    ax.plot(r_leaks, r_leaks, 'r', linestyle='dotted', alpha=.6, linewidth=1.3)
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)

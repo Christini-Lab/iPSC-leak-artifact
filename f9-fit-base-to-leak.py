@@ -420,7 +420,7 @@ def plot_generation(inds,
     print(best_ind[0])
 
     t, v = get_kernik_ap()
-    axs[1].plot(t, v, c='grey', linestyle='dotted', alpha=.5,
+    axs[1].plot(t, v, c='grey', linestyle='dotted', alpha=.5, linewidth=1.3,
                                             label='Original', rasterized=True)
 
     #t, v, cai, i_ion = get_normal_sim_dat(None)
@@ -561,9 +561,9 @@ def plot_background_currs(axs):
 
 
 def plot_figure():
-    fig, axs = plt.subplots(2, 2, figsize=(6.5, 5.5))
+    fig, axs = plt.subplots(1, 2, figsize=(6.5, 3.5))
 
-    fig.subplots_adjust(.11, .09, .96, .95, wspace=.25, hspace=.2)
+    fig.subplots_adjust(.11, .12, .96, .95, wspace=.25, hspace=.2)
 
     all_individuals = pickle.load(
             open('./data/ga_results/inds_bCa_bNa_fixed.pkl', 'rb'))
@@ -573,9 +573,9 @@ def plot_figure():
                     is_top_ten=False,
                     lower_bound=.1,
                     upper_bound=10,
-                    axs=axs[0])
+                    axs=axs)
 
-    plot_background_currs(axs[1])
+    #plot_background_currs(axs[1])
 
     letters = ['A', 'B', 'C', 'D']
 

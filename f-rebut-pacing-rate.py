@@ -16,27 +16,27 @@ def figure_leak_paced():
     #Panel A
     subgrid = grid[0, 0].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_mod_paced(ax, 'Kernik', stim=.03, period=600, leak=.1, title='Kernik Spont')
+    plot_mod_paced(ax, 'Kernik', stim=.03, period=500, leak=.2, title='Kernik Spont')
     axs.append(ax)
     ax.set_ylabel('Voltage (mV)')
 
     #Panel B
     subgrid = grid[0, 1].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_mod_paced(ax, 'Kernik', stim=3, period=600, leak=.1, title='Kernik Paced')
+    plot_mod_paced(ax, 'Kernik', stim=3, period=500, leak=.2, title='Kernik Paced')
     axs.append(ax)
 
     #Panel C
     subgrid = grid[1, 0].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_mod_paced(ax, 'Paci', stim=.03, period=900, leak=.8, title='Paci Spont')
+    plot_mod_paced(ax, 'Paci', stim=.03, period=900, leak=.5, title='Paci Spont')
     axs.append(ax)
     ax.set_xlabel('Time (ms)')
 
     #Panel D
     subgrid = grid[1, 1].subgridspec(1, 1)
     ax = fig.add_subplot(subgrid[0])
-    plot_mod_paced(ax, 'Paci', stim=3, period=900, leak=.8, title='Paci Paced')
+    plot_mod_paced(ax, 'Paci', stim=3, period=900, leak=.5, title='Paci Paced')
     axs.append(ax)
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Voltage (mV)')
