@@ -156,7 +156,7 @@ def plot_mod_leak(ax_ap, axs_biom, fig, all_leaks, Cm, base_model, leak_model):
         if Cm == 50:
             axs_biom[i].set_ylabel(biom_name)
 
-        if 'CL' in biom_name:
+        if 'APD' in biom_name:
             axs_biom[i].set_xlabel(r'$R_{seal}\ (G\Omega)$')
 
         #axs_biom[i].xticks(np.linspace(.1, 1, .1))
@@ -209,7 +209,6 @@ def get_biomarkers(t, v):
         apd90.append(t_range[apd90_idx] - t_range[0])
 
     return mdp, dvdt, np.average(apd90), 1
-
 
 
 def plot_tor_ord():
